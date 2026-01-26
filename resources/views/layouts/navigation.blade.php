@@ -3,7 +3,7 @@
         <div class="flex justify-between h-20"> <div class="flex">
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
-                        <img src="/images/logo.png" alt="Logo" class="block h-12 w-12 rounded-full border-2 border-white bg-white">
+                        <img src="/images/PUPLogo.png" alt="Logo" class="block h-12 w-12 rounded-full border-2 border-white bg-white">
                         
                         <div class="hidden lg:flex flex-col text-white leading-tight">
                             <span class="font-bold text-lg tracking-wide">Student Affairs</span>
