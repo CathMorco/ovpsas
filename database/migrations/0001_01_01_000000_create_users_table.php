@@ -17,6 +17,8 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('designation')->nullable(); // Stores "Head of Office"
+            $table->integer('office_id')->nullable();  // Stores the ID (1 or 2) from your dropdown
             $table->rememberToken();
             $table->timestamps();
         });
