@@ -53,7 +53,7 @@
                 @csrf
 
                 <div class="space-y-4">
-                    <input type="text" name="username" placeholder="Username"
+                    <input type="email" name="email" placeholder="Email Address" required
                            class="w-full bg-[#E8EDF2] border-none rounded-xl p-4 focus:ring-2 focus:ring-[#800000]">
 
                     <input type="password" name="password" placeholder="Password"
