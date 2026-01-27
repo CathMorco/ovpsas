@@ -50,11 +50,12 @@
                     Create Account
                 </button>
 
-                <div class="mt-4 text-center">
-                    <a class="text-sm text-gray-600 hover:text-[#800000]" href="{{ route('login') }}">
-                        Already have an account? Log in
-                    </a>
-                </div>
+            <div class="mt-4 text-center">
+                {{-- Use url('/') to go to the welcome page --}}
+                <a class="text-sm text-gray-600 hover:text-[#800000]" href="{{ url('/') }}">
+                    Already have an account? Return to Home
+                </a>
+            </div>
             </form>
         </div>
     </div>

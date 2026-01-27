@@ -16,12 +16,15 @@
 
             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex items-center">
                 <a href="{{ url('/') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('/') ? 'border-b-2 border-yellow-400 pb-1' : '' }}">
+                <a href="{{ url('/') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('/') ? 'border-b-2 border-yellow-400 pb-1' : '' }}">
                     Home
                 </a>
 
                 <a href="{{ route('dashboard') }}" class="text-white font-bold text-sm {{ Request::is('dashboard') ? 'border-b-2 border-yellow-400 pb-1' : 'hover:text-yellow-300 transition' }}">
                     Dashboard
                 </a>
+
+                <a href="{{ url('/about') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('about') ? 'border-b-2 border-yellow-400 pb-1' : '' }}">
 
                 <a href="{{ url('/about') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('about') ? 'border-b-2 border-yellow-400 pb-1' : '' }}">
                     About Us
@@ -82,6 +85,10 @@
 
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-red-900 text-white">
         <div class="pt-2 pb-3 space-y-1">
+            <x-responsive-nav-link :href="url('/')" :active="request()->is('/')" class="text-white hover:bg-red-800">
+                {{ __('Home') }}
+            </x-responsive-nav-link>
+
             <x-responsive-nav-link :href="url('/')" :active="request()->is('/')" class="text-white hover:bg-red-800">
                 {{ __('Home') }}
             </x-responsive-nav-link>
