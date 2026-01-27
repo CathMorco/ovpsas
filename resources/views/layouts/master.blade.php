@@ -10,7 +10,7 @@
 
     <nav class="w-full bg-[#800000] px-6 py-4 shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-            
+
             <a href="{{ url('/') }}" class="flex items-center gap-4 group">
                 <img src="/images/PUPLogo.png" alt="PUP Logo" class="h-14 w-14 rounded-full bg-white p-0.5 border-2 border-white group-hover:scale-105 transition-transform">
                 <div class="flex flex-col text-white leading-tight">
@@ -23,7 +23,7 @@
                 <a href="{{ url('/') }}" class="hover:text-yellow-300 transition {{ Request::is('/') ? 'text-yellow-300 border-b-2 border-yellow-300' : '' }}">
                     Home
                 </a>
-                
+
                 @auth
                     <a href="{{ url('/dashboard') }}" class="hover:text-yellow-300 transition {{ Request::is('dashboard') ? 'text-yellow-300 border-b-2 border-yellow-300' : '' }}">
                         Dashboard
