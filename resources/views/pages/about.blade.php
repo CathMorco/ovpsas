@@ -156,18 +156,18 @@
                         </h2>
                         <div class="grid md:grid-cols-2 gap-x-12 gap-y-4">
                             <div class="space-y-3">
-                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">1</span> Pillar 1: Dynamic, Transformational, and Responsible Leadership</p>
-                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">2</span> Pillar 2: Responsive and Innovative Curricula and Instruction</p>
-                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">3</span> Pillar 3: Enabling and Productive Learning Environment</p>
-                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">4</span> Pillar 4: Holistic Student Development and Engagement</p>
-                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">5</span> Pillar 5: Empowered Faculty Members and Employees</p>
+                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">Pillar 1:</span> Dynamic, Transformational, and Responsible Leadership</p>
+                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">Pillar 2:</span> Responsive and Innovative Curricula and Instruction</p>
+                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">Pillar 3:</span> Enabling and Productive Learning Environment</p>
+                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">Pillar 4:</span> Holistic Student Development and Engagement</p>
+                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">Pillar 5:</span> Empowered Faculty Members and Employees</p>
                             </div>
                             <div class="space-y-3">
-                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">6</span> Pillar 6: Vigorous Research Production and Utilization</p>
-                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">7</span> Pillar 7: Global Academic Standards and Excellence</p>
-                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">8</span> Pillar 8: Synergistic, Productive, Strategic Networks and Partnerships</p>
-                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">9</span> Pillar 9: Active and Sustained Stakeholders’ Engagement</p>
-                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">10</span> Pillar 10: Sustainable Social Development Programs and Projects</p>
+                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">Pillar 6:</span> Vigorous Research Production and Utilization</p>
+                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">Pillar 7:</span> Global Academic Standards and Excellence</p>
+                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">Pillar 8:</span> Synergistic, Productive, Strategic Networks and Partnerships</p>
+                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">Pillar 9:</span> Active and Sustained Stakeholders’ Engagement</p>
+                                <p class="flex gap-3 text-gray-700 text-justify items-start text-sm"><span class="font-bold text-[#800000]">Pillar 10:</span> Sustainable Social Development Programs and Projects</p>
                             </div>
                         </div>
                     </div>
