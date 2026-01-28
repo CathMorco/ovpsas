@@ -8,6 +8,8 @@ use App\Models\Announcement;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SearchController;
 
+Route::get('/search', [SearchController::class, 'index'])->name('search');
+
 // Public Routes
 Route::get('/', function () {
     $announcements = Announcement::latest()->take(6)->get();

@@ -52,7 +52,6 @@ class User extends Authenticatable
     /**
      * Role-Based Access Control (RBAC) Helpers
      */
-
     public function isAdmin(): bool
     {
         return $this->role === 'Admin';
@@ -74,5 +73,14 @@ class User extends Authenticatable
     public function office()
     {
         return $this->belongsTo(Office::class, 'office_id');
+    }
+
+    /**
+     * Get the sessions associated with the user.
+     * REQUIRED for the Active Users sidebar to work.
+     */
+    public function sessions()
+    {
+        return $this->hasMany(Session::class);
     }
 }
