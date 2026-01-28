@@ -23,6 +23,7 @@ class User extends Authenticatable
         'password',
         'office_id',
         'designation',
+        'role', // Added for RBAC: Admin, Office Staff, or Viewer
     ];
 
     /**
@@ -46,5 +47,32 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Role-Based Access Control (RBAC) Helpers
+     */
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'Admin';
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->role === 'Office Staff';
+    }
+
+    public function isViewer(): bool
+    {
+        return $this->role === 'Viewer';
+    }
+
+    /**
+     * Relationship with the Office
+     */
+    public function office()
+    {
+        return $this->belongsTo(Office::class, 'office_id');
     }
 }

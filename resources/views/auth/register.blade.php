@@ -9,50 +9,85 @@
 
         <div class="w-full sm:max-w-md px-6 py-8 bg-white shadow-md overflow-hidden sm:rounded-lg">
 
+            @if ($errors->any())
+                <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                    <strong class="font-bold">Whoops!</strong>
+                    <span class="block sm:inline">There were some problems with your input.</span>
+                </div>
+            @endif
+
             <form method="POST" action="{{ route('register') }}">
                 @csrf
 
                 <div class="mb-4 mt-6">
                     <label class="block text-gray-700 text-sm font-bold mb-2">Office</label>
-                    <select name="office_id" class="w-full bg-gray-200 border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#800000]">
+                    <select name="office_id" class="w-full bg-gray-200 border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#800000] @error('office_id') border-2 border-red-500 @enderror">
                         <option value="">Select Office...</option>
-                        <option value="1">OSFA</option>
-                        <option value="2">Guidance</option>
+                        <option value="1" {{ old('office_id') == 1 ? 'selected' : '' }}>OSFA</option>
+                        <option value="2" {{ old('office_id') == 2 ? 'selected' : '' }}>Guidance (OCPS)</option>
+                        <option value="3" {{ old('office_id') == 3 ? 'selected' : '' }}>Scholarship (OSFA)</option>
+                        <option value="4" {{ old('office_id') == 4 ? 'selected' : '' }}>Student Services (OSS)</option>
+                        <option value="5" {{ old('office_id') == 5 ? 'selected' : '' }}>Registrar (OUR)</option>
+                        <option value="6" {{ old('office_id') == 6 ? 'selected' : '' }}>Sports (SDPO)</option>
+                        <option value="7" {{ old('office_id') == 7 ? 'selected' : '' }}>Culture (UCCA)</option>
+                        <option value="8" {{ old('office_id') == 8 ? 'selected' : '' }}>Alumni (ARCDO)</option>
                     </select>
+                    @error('office_id')
+                        <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2">Name</label>
-                    <input type="text" name="name" placeholder="Full Name" class="w-full bg-gray-200 border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#800000]">
+                    <input type="text" name="name" value="{{ old('name') }}" placeholder="Full Name" 
+                           class="w-full bg-gray-200 border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#800000] @error('name') border-2 border-red-500 @enderror">
+                    @error('name')
+                        <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2">Designation</label>
-                    <input type="text" name="designation" placeholder="e.g. Head of Office" class="w-full bg-gray-200 border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#800000]">
+                    <input type="text" name="designation" value="{{ old('designation') }}" placeholder="e.g. Head of Office" 
+                           class="w-full bg-gray-200 border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#800000] @error('designation') border-2 border-red-500 @enderror">
+                    @error('designation')
+                        <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2">Email</label>
-                    <input type="email" name="email" placeholder="email@pup.edu.ph" class="w-full bg-gray-200 border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#800000]">
+                    <input type="email" name="email" value="{{ old('email') }}" placeholder="email@pup.edu.ph" 
+                           class="w-full bg-gray-200 border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#800000] @error('email') border-2 border-red-500 @enderror">
+                    @error('email')
+                        <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
-                    <input type="password" name="password" class="w-full bg-gray-200 border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#800000]">
+                    <input type="password" name="password" 
+                           class="w-full bg-gray-200 border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#800000] @error('password') border-2 border-red-500 @enderror">
+                    @error('password')
+                        <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div class="mb-6">
                     <label class="block text-gray-700 text-sm font-bold mb-2">Confirm Password</label>
-                    <input type="password" name="password_confirmation" class="w-full bg-gray-200 border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#800000]">
-                </div>
+                    <input type="password" name="password_confirmation" 
+                           class="w-full bg-gray-200 border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#800000]">
+                    </div>
 
-                <button type="submit" class="w-full bg-[#800000] text-white font-bold py-3 rounded-full hover:bg-red-900 transition duration-300">
+                <button type="submit" 
+                        onclick="this.disabled=true; this.form.submit(); this.innerText='Creating...';"
+                        class="w-full bg-[#800000] text-white font-bold py-3 rounded-full hover:bg-red-900 transition duration-300">
                     Create Account
                 </button>
 
                 <div class="mt-4 text-center">
-                    <a class="text-sm text-gray-600 hover:text-[#800000]" href="{{ route('login') }}">
-                        Already have an account? Log in
+                    <a class="text-sm text-gray-600 hover:text-[#800000]" href="{{ url('/') }}">
+                        Already have an account? Return to Home
                     </a>
                 </div>
             </form>

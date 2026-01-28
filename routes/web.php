@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CommentController; // Added this import
 use App\Models\Announcement;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\SearchController;
 
 // Public Routes
 Route::get('/', function () {

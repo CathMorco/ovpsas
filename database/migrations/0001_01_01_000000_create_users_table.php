@@ -17,8 +17,18 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('designation')->nullable(); // Stores "Head of Office"
-            $table->integer('office_id')->nullable();  // Stores the ID (1 or 2) from your dropdown
+            
+            // --- UPDATED FOR SASIS RBAC ---
+            // Stores "Admin", "Office Staff", or "Viewer" 
+            $table->string('role')->default('Viewer'); 
+            
+            // Stores the ID of the 7 University units (e.g., ARCDO, OCPS) [cite: 8, 31]
+            $table->integer('office_id')->nullable();  
+            
+            // Stores the specific job title (e.g., "IT Head", "Office Clerk") 
+            $table->string('designation')->nullable(); 
+            // ------------------------------
+
             $table->rememberToken();
             $table->timestamps();
         });

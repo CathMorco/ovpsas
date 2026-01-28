@@ -16,6 +16,7 @@
 
             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex items-center">
                 <a href="{{ url('/') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('/') ? 'border-b-2 border-yellow-400 pb-1' : '' }}">
+                <a href="{{ url('/') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('/') ? 'border-b-2 border-yellow-400 pb-1' : '' }}">
                     Home
                 </a>
 
@@ -24,20 +25,25 @@
                 </a>
 
                 <a href="{{ url('/about') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('about') ? 'border-b-2 border-yellow-400 pb-1' : '' }}">
+
+                <a href="{{ url('/about') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('about') ? 'border-b-2 border-yellow-400 pb-1' : '' }}">
                     About Us
                 </a>
             </div>
 
             <div class="hidden sm:flex sm:items-center sm:ms-6 gap-4">
 
-                <div class="relative hidden lg:block w-64">
-                    <input type="text" placeholder="Search..." class="w-full bg-white text-gray-800 rounded-full px-4 py-1.5 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400">
-                    <button class="absolute right-1 top-1/2 transform -translate-y-1/2 bg-[#FCD116] p-1 rounded-full hover:bg-yellow-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </button>
-                </div>
+            <form action="{{ route('search') }}" method="GET" class="relative hidden md:block w-64 ml-4">
+    
+                <input type="text" name="query" value="{{ request('query') }}" placeholder="Search..." 
+                    class="w-full bg-white text-gray-800 rounded-full px-4 py-1.5 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400">
+    
+                <button type="submit" class="absolute right-1 top-1/2 transform -translate-y-1/2 bg-[#FCD116] p-1 rounded-full hover:bg-yellow-300 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </button>
+            </form>
 
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
@@ -82,6 +88,10 @@
 
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-red-900 text-white">
         <div class="pt-2 pb-3 space-y-1">
+            <x-responsive-nav-link :href="url('/')" :active="request()->is('/')" class="text-white hover:bg-red-800">
+                {{ __('Home') }}
+            </x-responsive-nav-link>
+
             <x-responsive-nav-link :href="url('/')" :active="request()->is('/')" class="text-white hover:bg-red-800">
                 {{ __('Home') }}
             </x-responsive-nav-link>
