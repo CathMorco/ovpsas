@@ -1,0 +1,19 @@
+/* resources/css/user_profile/style.css */
+
+/* Hide scrollbar for the sidebar column */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Maintain custom scrollbar for the table content only */
+.custom-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+    background: #800000;
+    border-radius: 10px;
+}

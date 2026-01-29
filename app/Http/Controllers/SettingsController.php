@@ -9,15 +9,14 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 
-class ProfileController extends Controller
+class SettingsController extends Controller
 {
     /**
      * Display the user's profile form.
      */
     public function edit(Request $request): View
     {
-        // Change 'profile.edit' to 'user_profile.view'
-        return view('user_profile.view', [
+        return view('profile.edit', [
             'user' => $request->user(),
         ]);
     }

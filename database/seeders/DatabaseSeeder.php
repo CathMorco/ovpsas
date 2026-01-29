@@ -3,14 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
      */
@@ -27,12 +25,14 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 2. Office Staff - Access to specific office folders (e.g., ARCDO)
+        // Ensure you have an Office with ID 1 created before running this, 
+        // or change office_id to null if the offices table is empty.
         User::factory()->create([
             'name' => 'ARCDO Staff',
             'email' => 'staff@sasis.edu',
             'password' => Hash::make('password123'),
             'role' => 'Office Staff',
-            'office_id' => 1, // Linked to Alumni Relations and Career Development Office
+            'office_id' => 1, 
             'designation' => 'Office Clerk',
         ]);
 
@@ -44,6 +44,13 @@ class DatabaseSeeder extends Seeder
             'role' => 'Viewer',
             'office_id' => null,
             'designation' => 'Student/Guest',
+        ]);
+        
+        // Optional: Keep the original test user if you still want it
+        User::factory()->create([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'role' => 'Viewer', // added a role to prevent errors
         ]);
     }
 }

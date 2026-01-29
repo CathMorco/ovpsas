@@ -58,6 +58,7 @@
     <nav x-data="{ open: false }" class="bg-[#800000] border-b border-red-900 sticky top-0 z-50 shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-20">
+                
                 <div class="flex">
                     <div class="shrink-0 flex items-center">
                         <a href="{{ url('/') }}" class="flex items-center gap-3 group">
@@ -79,6 +80,7 @@
                 </div>
 
                 <div class="hidden sm:flex sm:items-center sm:ms-6 gap-4">
+                    
                     <form action="{{ route('search') }}" method="GET" class="relative hidden md:block w-64">
                         <input type="text" name="query" value="{{ request('query') }}" placeholder="Search..." 
                             class="w-full bg-white text-gray-800 rounded-full px-4 py-1.5 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400">
@@ -105,10 +107,19 @@
                                     </button>
                                 </x-slot>
                                 <x-slot name="content">
-                                    <x-dropdown-link :href="route('profile.edit')">{{ __('Profile') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('profile.edit')">
+                                        {{ __('Profile') }}
+                                    </x-dropdown-link>
+
+                                    <x-dropdown-link :href="route('settings.edit')">
+                                        {{ __('Settings') }}
+                                    </x-dropdown-link>
+
                                     <form method="POST" action="{{ route('logout') }}">
                                         @csrf
-                                        <x-dropdown-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">{{ __('Log Out') }}</x-dropdown-link>
+                                        <x-dropdown-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">
+                                            {{ __('Log Out') }}
+                                        </x-dropdown-link>
                                     </form>
                                 </x-slot>
                             </x-dropdown>
@@ -177,10 +188,12 @@
     @auth
     <div class="relative z-50" aria-labelledby="slide-over-title" role="dialog" aria-modal="true" x-show="sidebarOpen" x-cloak>
         <div x-show="sidebarOpen" x-transition:enter="ease-in-out duration-500" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in-out duration-500" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="sidebarOpen = false"></div>
+
         <div class="fixed inset-0 overflow-hidden">
             <div class="absolute inset-0 overflow-hidden">
                 <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
                     <div x-show="sidebarOpen" x-transition:enter="transform transition ease-in-out duration-500 sm:duration-700" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transform transition ease-in-out duration-500 sm:duration-700" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" class="pointer-events-auto w-screen max-w-md">
+                        
                         <div class="flex h-full flex-col overflow-y-scroll bg-white shadow-xl">
                             <div class="px-4 py-6 sm:px-6 bg-[#800000]">
                                 <div class="flex items-start justify-between">
@@ -193,6 +206,7 @@
                                     </div>
                                 </div>
                             </div>
+
                             <div class="relative flex-1 px-4 py-6 sm:px-6 space-y-8 bg-gray-50">
                                 
                                 <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
@@ -200,6 +214,7 @@
                                         Active Users
                                         <span class="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">{{ $activeUsers->count() }} Online</span>
                                     </h3>
+                                    
                                     @if($activeUsers->isEmpty())
                                         <p class="text-sm text-gray-500 italic">No other users are currently online.</p>
                                     @else
@@ -213,6 +228,7 @@
                                                         </div>
                                                         <span class="text-gray-700 font-medium">{{ $activeUser->name }}</span>
                                                     </div>
+                                                    
                                                     <div class="flex items-center gap-2" title="{{ ucfirst($status) }}">
                                                         @if($status === 'online')
                                                             <span class="text-[10px] text-green-600 font-bold hidden group-hover:block">Online</span>
@@ -245,6 +261,10 @@
                                         <div class="flex items-center bg-[#800000] rounded-xl p-3 shadow-md text-white">
                                             <div class="bg-white/20 p-2 rounded-lg mr-3"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>
                                             <div><p class="font-bold text-sm">Filename Gamboa</p><p class="text-xs text-yellow-300 opacity-90">Office of the Student Services (OSS)</p></div>
+                                        </div>
+                                        <div class="flex items-center bg-[#800000] rounded-xl p-3 shadow-md text-white">
+                                            <div class="bg-white/20 p-2 rounded-lg mr-3"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>
+                                            <div><p class="font-bold text-sm">Filename Laceda</p><p class="text-xs text-yellow-300 opacity-90">Alumni Relations and Career Development...</p></div>
                                         </div>
                                     </div>
                                 </div>
