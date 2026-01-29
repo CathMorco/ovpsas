@@ -21,39 +21,65 @@
                 <form action="{{ route('announcements.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="max-w-5xl space-y-5">
+
                         <div class="flex flex-col md:flex-row gap-6">
-                            <div class="flex items-center gap-4 flex-1">
+                            <div class="flex items-center gap-4 flex-1"
+                                 x-data="{
+                                    open: false,
+                                    selected: [],
+                                    toggleOffice(option) {
+                                        if (option === 'All Offices') {
+                                            this.selected = ['All Offices'];
+                                        } else {
+                                            this.selected = this.selected.filter(i => i !== 'All Offices');
+                                            if (this.selected.includes(option)) {
+                                                this.selected = this.selected.filter(i => i !== option);
+                                            } else {
+                                                this.selected.push(option);
+                                            }
+                                        }
+                                    }
+                                 }">
                                 <label class="font-bold text-[#800000] w-20 text-sm">Target:</label>
-                                <select name="office" @mousedown="!isLoggedIn && ($event.preventDefault(), triggerAuthNotice())" class="flex-grow bg-gray-100 border-none rounded-md px-4 py-2.5 text-sm focus:ring-2 focus:ring-yellow-400" required>
-                                    <option value="" disabled selected>Select Office...</option>
-                                    <option value="All Offices">All Offices</option>
-                                    <option value="ARCDO">ARCDO</option>
-                                    <option value="OCPS">OCPS</option>
-                                    <option value="OSFA">OSFA</option>
-                                    <option value="OSS">OSS</option>
-                                    <option value="OUR">OUR</option>
-                                    <option value="SDPO">SDPO</option>
-                                    <option value="UCCA">UCCA</option>
-                                </select>
+                                <div class="relative flex-grow">
+                                    <button type="button" @click="isLoggedIn ? open = !open : triggerAuthNotice()"
+                                        class="w-full bg-gray-100 border-none rounded-md px-4 py-2.5 text-sm text-left flex justify-between items-center focus:ring-2 focus:ring-yellow-400">
+                                        <span x-text="selected.length > 0 ? selected.join(', ') : 'Select Offices...'" class="truncate"></span>
+                                        <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </button>
+
+                                    <div x-show="open" x-cloak @click.away="open = false" class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto p-2">
+                                        @foreach(['All Offices', 'ARCDO', 'OCPS', 'OSFA', 'OSS', 'OUR', 'SDPO', 'UCCA'] as $office)
+                                        <label class="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded cursor-pointer">
+                                            <input type="checkbox" name="office[]" value="{{ $office }}"
+                                                   :checked="selected.includes('{{ $office }}')"
+                                                   @click="toggleOffice('{{ $office }}')"
+                                                   class="rounded text-[#800000] focus:ring-[#800000]">
+                                            <span class="text-sm text-gray-700">{{ $office }}</span>
+                                        </label>
+                                        @endforeach
+                                    </div>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-4 flex-1">
+
+                            <div class="flex items-center gap-4 flex-1" x-data="{ open: false, selected: [] }">
                                 <label class="font-bold text-[#800000] w-20 text-sm">Category:</label>
-                                <select name="category" @mousedown="!isLoggedIn && ($event.preventDefault(), triggerAuthNotice())" class="flex-grow bg-gray-100 border-none rounded-md px-4 py-2.5 text-sm focus:ring-2 focus:ring-yellow-400" required>
-                                    <option value="" disabled selected>Select Category...</option>
-                                    <option value="Memorandums">Memorandums (Memos)</option>
-                                    <option value="Executive Orders">Executive Orders (EOs)</option>
-                                    <option value="Reports">Reports</option>
-                                    <option value="Minutes of Meeting">Minutes of Meeting</option>
-                                    <option value="Activity Proposals">Activity Proposals</option>
-                                    <option value="Letters">Letters / Correspondence</option>
-                                    <option value="Financials">Financials & Budget</option>
-                                    <option value="Forms">Forms & Templates</option>
-                                    <option value="Policies">Policies & Guidelines</option>
-                                    <option value="MOAs">MOAs / MOUs</option>
-                                    <option value="Masterlists">Masterlists</option>
-                                    <option value="Event Material">Event Material</option>
-                                    <option value="Others">Others</option>
-                                </select>
+                                <div class="relative flex-grow">
+                                    <button type="button" @click="isLoggedIn ? open = !open : triggerAuthNotice()"
+                                        class="w-full bg-gray-100 border-none rounded-md px-4 py-2.5 text-sm text-left flex justify-between items-center focus:ring-2 focus:ring-yellow-400">
+                                        <span x-text="selected.length > 0 ? selected.join(', ') : 'Select Categories...'" class="truncate"></span>
+                                        <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </button>
+
+                                    <div x-show="open" x-cloak @click.away="open = false" class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto p-2">
+                                        @foreach(['Memorandums', 'Executive Orders', 'Reports', 'Minutes of Meeting', 'Activity Proposals', 'Letters', 'Financials', 'Forms', 'Policies', 'MOAs', 'Masterlists', 'Event Material', 'Others'] as $cat)
+                                        <label class="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded cursor-pointer">
+                                            <input type="checkbox" name="category[]" value="{{ $cat }}" x-model="selected" class="rounded text-[#800000] focus:ring-[#800000]">
+                                            <span class="text-sm text-gray-700">{{ $cat }}</span>
+                                        </label>
+                                        @endforeach
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -74,7 +100,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                     </svg>
                                     <span x-text="fileName ? fileName : 'Upload File'">Upload File</span>
-                                    <input type="file" name="attachment" class="hidden" @change="if($event.target.files[0]) fileName = $event.target.files[0].name;">
+                                    <input type="file" name="file" class="hidden" @change="if($event.target.files[0]) fileName = $event.target.files[0].name;">
                                 </label>
                                 <template x-if="fileName"><span class="text-[10px] text-green-600 font-bold italic">Selected: <span x-text="fileName"></span></span></template>
                             </div>
@@ -116,7 +142,7 @@
                     <div class="space-y-3">
                         @php $memoCount = 0; @endphp
                         @foreach($announcements as $announcement)
-                            @if($announcement->category == 'Memorandums' && $announcement->file_path)
+                            @if(is_array($announcement->category) && in_array('Memorandums', $announcement->category) && $announcement->file_path)
                                 @php $memoCount++; @endphp
                                 <a href="{{ asset('storage/' . $announcement->file_path) }}" target="_blank" class="flex items-center gap-3 text-sm text-gray-700 hover:text-[#800000] transition-colors group">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#800000] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -148,7 +174,7 @@
                     <div class="space-y-3">
                         @php $eoCount = 0; @endphp
                         @foreach($announcements as $announcement)
-                            @if($announcement->category == 'Executive Orders' && $announcement->file_path)
+                            @if(is_array($announcement->category) && in_array('Executive Orders', $announcement->category) && $announcement->file_path)
                                 @php $eoCount++; @endphp
                                 <a href="{{ asset('storage/' . $announcement->file_path) }}" target="_blank" class="flex items-center gap-3 text-sm text-gray-700 hover:text-[#800000] transition-colors group">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#800000] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -181,7 +207,9 @@
                         @forelse($announcements->take(10) as $announcement)
                         <div class="flex justify-between items-center text-[10px] text-gray-600 gap-2 border-b border-gray-50 pb-2 last:border-0">
                             <div class="truncate flex flex-col min-w-0">
-                                <span class="font-bold text-[#800000] uppercase text-[8px]">{{ $announcement->office }}</span>
+                                <span class="font-bold text-[#800000] uppercase text-[8px]">
+                                    {{ is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office }}
+                                </span>
                                 <span class="truncate italic uppercase font-bold text-gray-800">{{ $announcement->title }}</span>
                                 <span class="text-[7px] text-gray-400 font-medium">{{ $announcement->created_at->diffForHumans() }}</span>
                             </div>
@@ -208,6 +236,5 @@
                 </div>
             </div>
         </div>
-
     </div>
 @endsection

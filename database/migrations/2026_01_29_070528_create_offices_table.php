@@ -10,20 +10,27 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up()
-    {
-        Schema::create('offices', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('code')->nullable(); // e.g., 'OSS', 'OCPS'
-            $table->timestamps();
-        });
-    }
+{
+    Schema::create('announcements', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('user_id')->constrained()->onDelete('cascade');
+
+        // SHOULD BE JSON OR TEXT (Not string)
+        $table->json('office');
+        $table->json('category');
+
+        $table->string('title')->nullable();
+        $table->text('content');
+        $table->string('file_path')->nullable(); // For your uploads
+        $table->timestamps();
+    });
+}
 
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('offices');
+        Schema::dropIfExists('announcements'); // This is correct
     }
 };
