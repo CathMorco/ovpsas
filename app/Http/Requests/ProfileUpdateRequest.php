@@ -17,14 +17,23 @@ class ProfileUpdateRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            
+            // Merged: Uses the modern Rule syntax + lowercase check
             'email' => [
-                'required',
-                'string',
-                'lowercase',
-                'email',
-                'max:255',
+                'required', 
+                'string', 
+                'lowercase', 
+                'email', 
+                'max:255', 
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+
+            // Merged: Includes all your custom profile fields
+            'avatar'      => ['nullable', 'image', 'mimes:jpeg,png,jpg,tiff', 'max:1024'], // 1MB Max
+            'office_id'   => ['required', 'exists:offices,id'],
+            'designation' => ['required', 'string', 'max:255'],
+            'suffix'      => ['nullable', 'string', 'max:255'],
+            'phone'       => ['nullable', 'string', 'max:255'],
         ];
     }
 }

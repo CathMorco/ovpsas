@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\FileRecord;
 use App\Models\Announcement;
+use App\Models\RecentActivity; // <--- NEEDED for Dashboard Sidebar
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;   // <--- NEEDED for User ID tracking
 
 class FileController extends Controller
 {
@@ -16,17 +17,12 @@ class FileController extends Controller
     {
         $directory = "offices/{$office}";
 
-        // Use allFiles() to grab everything inside category subfolders
         $files = Storage::disk('public')->exists($directory)
                  ? Storage::disk('public')->allFiles($directory)
                  : [];
 
-        // This creates a collection and groups them by their folder name
         $groupedFiles = collect($files)->map(function($path) {
             $parts = explode('/', $path);
-
-            // If path is offices/ARCDO/Memorandums/file.pdf:
-            // index 0 = offices, index 1 = ARCDO, index 2 = Memorandums
             $category = (count($parts) > 2) ? $parts[2] : 'General';
 
             return [
@@ -55,6 +51,7 @@ class FileController extends Controller
         ]);
 
         $filePath = null;
+        $fileName = null;
 
         if ($request->hasFile('attachment')) {
             $office = $request->input('office');
@@ -62,8 +59,6 @@ class FileController extends Controller
             $file = $request->file('attachment');
 
             $fileName = $file->getClientOriginalName();
-
-            // Organizes files into: offices/ARCDO/Memorandums/filename.pdf
             $filePath = $file->storeAs("offices/{$office}/{$category}", $fileName, 'public');
         }
 
@@ -76,7 +71,46 @@ class FileController extends Controller
             'file_path' => $filePath,
         ]);
 
+        // --- LOG ACTIVITY: Uploaded ---
+        if ($filePath && $fileName) {
+            RecentActivity::create([
+                'user_id'     => Auth::id(),
+                'file_name'   => $fileName,
+                'office_name' => $request->office, 
+                'action'      => 'Uploaded'
+            ]);
+        }
+
         return back()->with('success', 'Published to ' . $request->office . ' under ' . $request->category . ' successfully!');
+    }
+
+    /**
+     * VIEW FILE: Logs activity and shows the file.
+     * REQUIRED for Dashboard Side Panel to work.
+     */
+    public function viewFile(Announcement $announcement)
+    {
+        $path = storage_path('app/public/' . $announcement->file_path);
+        
+        if (!file_exists($path)) {
+            abort(404);
+        }
+
+        // 1. Delete previous logs for this file/user to prevent duplicates (bumping it to top)
+        RecentActivity::where('user_id', Auth::id())
+            ->where('file_name', basename($announcement->file_path))
+            ->where('office_name', $announcement->office)
+            ->delete();
+
+        // 2. Create new "Opened" log
+        RecentActivity::create([
+            'user_id'     => Auth::id(),
+            'file_name'   => basename($announcement->file_path),
+            'office_name' => $announcement->office,
+            'action'      => 'Opened'
+        ]);
+
+        return response()->file($path);
     }
 
     /**
@@ -86,12 +120,10 @@ class FileController extends Controller
     {
         $path = $request->input('file_path');
 
-        // 1. Delete the physical file from storage
         if (Storage::disk('public')->exists($path)) {
             Storage::disk('public')->delete($path);
         }
 
-        // 2. Find the announcement record linked to this file path and delete it
         $announcement = Announcement::where('file_path', $path)->first();
 
         if ($announcement) {
@@ -112,16 +144,13 @@ class FileController extends Controller
             'body' => 'required|string',
         ]);
 
-        FileRecord::create([
-            'title' => $request->title,
-            'body' => $request->body,
-        ]);
-
+        // FileRecord logic removed as per your request in Code 2
+        
         return back()->with('success', 'File data saved successfully!');
     }
 
     /**
-     * Handles "Import File" (Actual file upload)
+     * Handles "Import File"
      */
     public function import(Request $request)
     {
@@ -132,11 +161,8 @@ class FileController extends Controller
         if ($request->hasFile('uploaded_file')) {
             $file = $request->file('uploaded_file');
             $path = $file->storeAs('uploads', $file->getClientOriginalName(), 'public');
-
-            FileRecord::create([
-                'title' => $file->getClientOriginalName(),
-                'file_path' => $path,
-            ]);
+            
+            // FileRecord logic removed as per your request in Code 2
         }
 
         return back()->with('success', 'File imported successfully!');

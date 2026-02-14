@@ -6,10 +6,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-
-// --- CRITICAL FIX: Import the Models ---
 use App\Models\Office;
 use App\Models\Session;
+use App\Models\Announcement; // <--- Critical Import for "My Uploads"
 
 class User extends Authenticatable
 {
@@ -18,22 +17,22 @@ class User extends Authenticatable
 
     /**
      * The attributes that are mass assignable.
-     *
-     * @var list<string>
      */
     protected $fillable = [
         'name',
+        'suffix',      // From Code 1 (Profile)
         'email',
+        'phone',       // From Code 1 (Profile)
         'password',
         'office_id',
-        'designation',
-        'role', // RBAC: Admin, Office Staff, or Viewer
+        'designation', 
+        'role',        // RBAC
+        'avatar',      // From Code 1 (Profile Picture)
+        'status',      // From Code 2 (Login Approval System)
     ];
 
     /**
      * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
      */
     protected $hidden = [
         'password',
@@ -42,8 +41,6 @@ class User extends Authenticatable
 
     /**
      * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
      */
     protected function casts(): array
     {
@@ -55,6 +52,7 @@ class User extends Authenticatable
 
     /**
      * Role-Based Access Control (RBAC) Helpers
+     * We keep Capitalized versions to match your DatabaseSeeder.
      */
     public function isAdmin(): bool
     {
@@ -81,10 +79,19 @@ class User extends Authenticatable
 
     /**
      * Get the sessions associated with the user.
-     * REQUIRED for the Active Users sidebar to work.
+     * REQUIRED for the Active Users sidebar.
      */
     public function sessions()
     {
         return $this->hasMany(Session::class);
+    }
+
+    /**
+     * Get the announcements (files) uploaded by this user.
+     * REQUIRED for the Profile Page "My Uploads" list.
+     */
+    public function announcements()
+    {
+        return $this->hasMany(Announcement::class);
     }
 }

@@ -5,30 +5,51 @@
 @section('content')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <div class="max-w-7xl mx-auto px-6 lg:px-8 space-y-10" x-data="{ openComment: null }">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 space-y-8 py-8" x-data="{ openComment: null }">
 
-        <div class="grid md:grid-cols-3 gap-6">
-            
-            <div class="bg-white p-6 shadow-md rounded-2xl border-l-8 border-[#800000] flex flex-col justify-center min-h-[180px] relative group">
-                <span class="text-gray-400 uppercase text-[10px] font-black tracking-widest text-center md:text-left">Total Uploads</span>
-                <h2 class="text-5xl font-black text-gray-800 leading-none mt-2 text-center md:text-left">{{ $announcements->count() }}</h2>
-                <p class="text-[10px] font-bold text-[#800000] mt-2 uppercase tracking-tight text-center md:text-left">Active System Documents</p>
-                
-                <button class="absolute top-4 right-4 text-gray-300 hover:text-[#800000] transition-colors" title="Export Report">
+        <div class="bg-white p-8 rounded-xl shadow-md border-t-4 border-[#800000]">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 uppercase tracking-tight">System Administrative Report</h2>
+                    <p class="text-gray-500 italic text-sm">Real-time analytics of system utilization.</p>
+                </div>
+                <a href="{{ route('reports.download') }}" class="bg-[#800000] text-white px-6 py-2 rounded-lg font-bold hover:bg-red-900 transition shadow-lg flex items-center gap-2 text-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                </button>
+                    GENERATE PDF REPORT
+                </a>
             </div>
 
-            <div class="bg-white p-5 shadow-md rounded-2xl border-t-4 border-yellow-400 flex flex-col h-[220px]">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
+                <div class="bg-red-50 p-6 rounded-xl border border-red-100 text-center">
+                    <p class="text-[10px] font-bold text-red-700 uppercase tracking-widest">Total Files</p>
+                    <h3 class="text-3xl font-black text-gray-800">{{ $totalFiles }}</h3>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-xl border border-gray-100 text-center">
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Monitored Offices</p>
+                    <h3 class="text-3xl font-black text-gray-800">{{ $activeOffices }}</h3>
+                </div>
+                <div class="bg-green-50 p-6 rounded-xl border border-green-100 text-center">
+                    <p class="text-[10px] font-bold text-green-700 uppercase tracking-widest">Uploaded This Month</p>
+                    <h3 class="text-3xl font-black text-green-600">{{ $filesThisMonth }}</h3>
+                </div>
+                <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 text-center">
+                    <p class="text-[10px] font-bold text-blue-700 uppercase tracking-widest">Most Active Office</p>
+                    <h3 class="text-xl font-black text-blue-600 truncate" title="{{ $mostActiveOffice }}">{{ \Illuminate\Support\Str::limit($mostActiveOffice, 15) }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-white p-5 shadow-md rounded-2xl border-t-4 border-yellow-400 flex flex-col h-[300px]">
                 <h3 class="font-black text-gray-700 mb-4 text-[10px] uppercase tracking-widest text-center">Category Distribution</h3>
                 <div class="flex-grow flex items-center justify-center relative overflow-hidden">
                     <canvas id="categoryChart"></canvas>
                 </div>
             </div>
 
-            <div class="bg-white p-5 shadow-md rounded-2xl border-t-4 border-[#800000] flex flex-col h-[220px]">
+            <div class="bg-white p-5 shadow-md rounded-2xl border-t-4 border-[#800000] flex flex-col h-[300px]">
                 <h3 class="font-black text-gray-700 mb-4 text-[10px] uppercase tracking-widest text-center">Office Uploads</h3>
                 <div class="flex-grow flex items-center justify-center relative overflow-hidden">
                     <canvas id="officeChart"></canvas>
@@ -69,7 +90,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#800000]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
                                 <span class="text-[10px] font-bold text-gray-500 truncate">{{ basename($announcement->file_path) }}</span>
                             </div>
-                            <a href="{{ asset('storage/' . $announcement->file_path) }}" target="_blank" class="text-[9px] bg-[#800000] text-white px-3 py-1 rounded-full font-black uppercase hover:bg-red-800 transition shadow-sm">View</a>
+                            <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="text-[9px] bg-[#800000] text-white px-3 py-1 rounded-full font-black uppercase hover:bg-red-800 transition shadow-sm">View</a>
                         </div>
                         @endif
                     </div>
@@ -132,7 +153,7 @@
                                         </div>
                                     </td>
                                     <td class="px-4 py-3 text-right">
-                                        <a href="{{ asset('storage/' . $announcement->file_path) }}" target="_blank" class="text-[#800000] opacity-30 group-hover:opacity-100 transition-all hover:scale-125 inline-block">
+                                        <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="text-[#800000] opacity-30 group-hover:opacity-100 transition-all hover:scale-125 inline-block">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                                         </a>
                                     </td>
@@ -159,5 +180,16 @@
 
         const ctxBar = document.getElementById('officeChart');
         if (ctxBar) { new Chart(ctxBar, { type: 'bar', data: { labels: officeLabels, datasets: [{ data: officeCounts, backgroundColor: '#800000' }] }, options: { ...commonOptions, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } }); }
+
+        // --- SIDEBAR AUTO REFRESH LOGIC ---
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                window.location.reload();
+            }
+        });
+        window.addEventListener( "pageshow", function ( event ) {
+            var historyTraversal = event.persisted || ( typeof window.performance != "undefined" && window.performance.navigation.type === 2 );
+            if ( historyTraversal ) { window.location.reload(); }
+        });
     </script>
 @endsection

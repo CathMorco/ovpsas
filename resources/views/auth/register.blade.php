@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @section('content')
-    <div class="flex flex-col justify-center items-center py-12 bg-gray-100">
+    <div class="flex flex-col justify-center items-center py-12 bg-gray-100 min-h-screen">
 
         <div class="mb-6 text-center">
              <h2 class="text-3xl font-extrabold text-[#800000]">Create Account</h2>
@@ -13,6 +13,11 @@
                 <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
                     <strong class="font-bold">Whoops!</strong>
                     <span class="block sm:inline">There were some problems with your input.</span>
+                    <ul class="mt-2 text-sm list-disc list-inside">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
                 </div>
             @endif
 
@@ -23,14 +28,17 @@
                     <label class="block text-gray-700 text-sm font-bold mb-2">Office</label>
                     <select name="office_id" class="w-full bg-gray-200 border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#800000] @error('office_id') border-2 border-red-500 @enderror">
                         <option value="">Select Office...</option>
-                        <option value="1" {{ old('office_id') == 1 ? 'selected' : '' }}>OSFA</option>
-                        <option value="2" {{ old('office_id') == 2 ? 'selected' : '' }}>Guidance (OCPS)</option>
-                        <option value="3" {{ old('office_id') == 3 ? 'selected' : '' }}>Scholarship (OSFA)</option>
-                        <option value="4" {{ old('office_id') == 4 ? 'selected' : '' }}>Student Services (OSS)</option>
-                        <option value="5" {{ old('office_id') == 5 ? 'selected' : '' }}>Registrar (OUR)</option>
-                        <option value="6" {{ old('office_id') == 6 ? 'selected' : '' }}>Sports (SDPO)</option>
-                        <option value="7" {{ old('office_id') == 7 ? 'selected' : '' }}>Culture (UCCA)</option>
-                        <option value="8" {{ old('office_id') == 8 ? 'selected' : '' }}>Alumni (ARCDO)</option>
+                        
+                        {{-- Checks if $offices exists to prevent crashing if the controller isn't updated yet --}}
+                        @if(isset($offices) && count($offices) > 0)
+                            @foreach($offices as $office)
+                                <option value="{{ $office->id }}" {{ old('office_id') == $office->id ? 'selected' : '' }}>
+                                    {{ $office->name }} {{ $office->code ? '('.$office->code.')' : '' }}
+                                </option>
+                            @endforeach
+                        @else
+                            <option value="" disabled>No offices found in database</option>
+                        @endif
                     </select>
                     @error('office_id')
                         <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
@@ -77,16 +85,16 @@
                     <label class="block text-gray-700 text-sm font-bold mb-2">Confirm Password</label>
                     <input type="password" name="password_confirmation" 
                            class="w-full bg-gray-200 border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#800000]">
-                    </div>
+                </div>
 
                 <button type="submit" 
                         onclick="this.disabled=true; this.form.submit(); this.innerText='Creating...';"
-                        class="w-full bg-[#800000] text-white font-bold py-3 rounded-full hover:bg-red-900 transition duration-300">
+                        class="w-full bg-[#800000] text-white font-bold py-3 rounded-full hover:bg-red-900 transition duration-300 shadow-md">
                     Create Account
                 </button>
 
                 <div class="mt-4 text-center">
-                    <a class="text-sm text-gray-600 hover:text-[#800000]" href="{{ url('/') }}">
+                    <a class="text-sm text-gray-600 hover:text-[#800000] underline" href="{{ url('/') }}">
                         Already have an account? Return to Home
                     </a>
                 </div>

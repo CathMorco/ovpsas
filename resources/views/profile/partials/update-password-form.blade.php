@@ -1,15 +1,11 @@
 <section>
-    <header>
-        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-            {{ __('Update Password') }}
-        </h2>
-
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {{ __('Ensure your account is using a long, random password to stay secure.') }}
-        </p>
+    <header class="mb-4">
+        <h2 class="text-xl font-black text-[#800000] uppercase tracking-tight">{{ __('Update Password') }}</h2>
+        <p class="text-xs text-gray-400">{{ __('Ensure your account is using a long, random password to stay secure.') }} </p>
+        <hr class="mt-2 border-gray-100 w-full">
     </header>
 
-    <form method="post" action="{{ route('password.update') }}" class="mt-6 space-y-6">
+    <form method="post" action="{{ route('password.update') }}#update-password" class="mt-6 space-y-6 max-w-sm">
         @csrf
         @method('put')
 
@@ -32,7 +28,9 @@
         </div>
 
         <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('Save') }}</x-primary-button>
+            <button type="submit" class="bg-[#800000] text-white px-10 py-2 rounded-md text-sm font-black uppercase w-48 shadow-md hover:bg-red-900 transition">
+                {{ __('SAVE') }}
+            </button>
 
             @if (session('status') === 'password-updated')
                 <p
@@ -40,7 +38,7 @@
                     x-show="show"
                     x-transition
                     x-init="setTimeout(() => show = false, 2000)"
-                    class="text-sm text-gray-600 dark:text-gray-400"
+                    class="text-sm text-green-600 font-bold"
                 >{{ __('Saved.') }}</p>
             @endif
         </div>

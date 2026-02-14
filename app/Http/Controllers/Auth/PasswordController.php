@@ -24,6 +24,7 @@ class PasswordController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        return back()->with('status', 'password-updated');
+        // Merged Result: Keeps the fragment so the page scrolls down to the form
+        return back()->withFragment('update-password')->with('status', 'password-updated');
     }
 }

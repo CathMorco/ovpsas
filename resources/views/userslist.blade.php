@@ -1,154 +1,158 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>User List - OVPSAS</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="bg-gray-100 font-sans antialiased flex flex-col min-h-screen"
-      x-data="{ isLoggedIn: {{ Auth::check() ? 'true' : 'false' }} }">
+@extends('layouts.master')
 
-    <nav x-data="{ open: false }" class="bg-[#800000] border-b border-red-900 sticky top-0 z-50 shadow-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-20">
-                <div class="flex">
-                    <div class="shrink-0 flex items-center">
-                        <a href="{{ url('/') }}" class="flex items-center gap-3 group">
-                            <img src="{{ asset('images/PUPLogo.png') }}" alt="Logo" class="block h-12 w-12 rounded-full border-2 border-white bg-white group-hover:scale-105 transition-transform">
-                            <div class="hidden lg:flex flex-col text-white leading-tight">
-                                <span class="font-bold text-lg tracking-wide group-hover:text-yellow-300 transition-colors">Student Affairs</span>
-                                <span class="text-xs opacity-90 font-light text-white">Services and Information System</span>
-                            </div>
-                        </a>
-                    </div>
-                </div>
+@section('title', 'User Directory - OVPSAS')
 
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex items-center">
-                    <a href="{{ url('/') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm">Home</a>
-                    <a href="{{ route('dashboard') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm">Dashboard</a>
-                    <a href="{{ url('/about') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm">About Us</a>
-                </div>
+@section('content')
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 space-y-8">
 
-                <div class="hidden sm:flex sm:items-center sm:ms-6 gap-4">
-                    @auth
-                        <div class="relative">
-                            <x-dropdown align="right" width="48">
-                                <x-slot name="trigger">
-                                    <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-bold rounded-md text-white hover:text-yellow-300 focus:outline-none transition">
-                                        <div>{{ Auth::user()->name }}</div>
-                                        <div class="ms-1">
-                                            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                            </svg>
-                                        </div>
-                                    </button>
-                                </x-slot>
-                                <x-slot name="content">
-                                    <x-dropdown-link :href="route('profile.edit')">{{ __('Profile') }}</x-dropdown-link>
-                                    <form method="POST" action="{{ route('logout') }}">
-                                        @csrf
-                                        <x-dropdown-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">{{ __('Log Out') }}</x-dropdown-link>
-                                    </form>
-                                </x-slot>
-                            </x-dropdown>
-                        </div>
-                    @endauth
-                </div>
+        {{-- Page Header --}}
+        <div class="border-b-2 border-gray-800 pb-2 flex justify-between items-end">
+            <div>
+                <span class="block w-20 h-2 bg-[#800000] mb-2"></span>
+                <h2 class="text-3xl font-black text-[#800000] tracking-tight uppercase italic">User Directory</h2>
+                <p class="text-sm text-gray-500 font-bold uppercase tracking-wider mt-1">Manage All Registered Accounts</p>
             </div>
         </div>
-    </nav>
 
-    <main class="flex-grow py-12">
-        <div class="max-w-7xl mx-auto px-6 lg:px-8">
-            <div class="space-y-6">
-                <div class="border-b-2 border-gray-800 pb-2">
-                    <h2 class="text-2xl font-black text-[#800000] tracking-tight uppercase italic">User Directory</h2>
+        {{-- Search & Filter Form --}}
+        <form action="{{ route('users.list') }}" method="GET" class="bg-white p-6 shadow-lg rounded-xl border-t-4 border-[#800000]">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                {{-- Search Name --}}
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Search Name</label>
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Type name..." 
+                           class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold focus:ring-2 focus:ring-[#800000] outline-none">
                 </div>
 
-                <form action="{{ url('/userslist') }}" method="GET" class="bg-white p-6 shadow-md rounded-lg border-t-4 border-[#800000]">
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Search Name</label>
-                            <input type="text" name="search" placeholder="Type name..." 
-                                   class="w-full bg-[#E5E7EB] border-none rounded-md px-4 py-2 text-sm italic focus:ring-2 focus:ring-yellow-400">
-                        </div>
+                {{-- Filter Office --}}
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Office</label>
+                    <select name="office" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold focus:ring-2 focus:ring-[#800000] outline-none">
+                        <option value="">All Offices</option>
+                        @foreach($offices as $office)
+                            <option value="{{ $office->id }}" {{ request('office') == $office->id ? 'selected' : '' }}>
+                                {{ $office->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Office</label>
-                            <select name="office" class="w-full bg-[#E5E7EB] border-none rounded-md px-4 py-2 text-sm italic focus:ring-2 focus:ring-yellow-400">
-                                <option value="">All Offices</option>
-                                <option value="ARCDO">ARCDO</option>
-                                <option value="OCPS">OCPS</option>
-                                <option value="OSFA">OSFA</option>
-                                <option value="OSS">OSS</option>
-                                <option value="OUR">OUR</option>
-                                <option value="SDPO">SDPO</option>
-                                <option value="UCCA">UCCA</option>
-                            </select>
-                        </div>
+                {{-- Filter Role --}}
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Role</label>
+                    <select name="role" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold focus:ring-2 focus:ring-[#800000] outline-none">
+                        <option value="">All Roles</option>
+                        <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
+                        <option value="staff" {{ request('role') == 'staff' ? 'selected' : '' }}>Staff</option>
+                        <option value="viewer" {{ request('role') == 'viewer' ? 'selected' : '' }}>Viewer</option>
+                    </select>
+                </div>
 
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Role</label>
-                            <select name="role" class="w-full bg-[#E5E7EB] border-none rounded-md px-4 py-2 text-sm italic focus:ring-2 focus:ring-yellow-400">
-                                <option value="">All Roles</option>
-                                <option value="admin">Admin</option>
-                                <option value="staff">Staff</option>
-                            </select>
-                        </div>
+                {{-- Filter Status --}}
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Status</label>
+                    <select name="status" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold focus:ring-2 focus:ring-[#800000] outline-none">
+                        <option value="">All Status</option>
+                        <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
+                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                    </select>
+                </div>
 
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Status</label>
-                            <select name="status" class="w-full bg-[#E5E7EB] border-none rounded-md px-4 py-2 text-sm italic focus:ring-2 focus:ring-yellow-400">
-                                <option value="">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                        </div>
+                {{-- Apply Button --}}
+                <div class="flex items-end">
+                    <button type="submit" class="w-full bg-[#800000] text-white py-2 rounded-lg text-xs font-black uppercase hover:bg-red-900 transition shadow-md tracking-widest">
+                        Apply Filters
+                    </button>
+                </div>
+            </div>
+        </form>
 
-                        <div class="flex items-end">
-                            <button type="submit" class="w-full bg-[#800000] text-white font-bold py-2 rounded-lg hover:bg-red-900 shadow-md uppercase text-[10px] tracking-widest transition">
-                                Apply Filters
-                            </button>
-                        </div>
-                    </div>
-                </form>
-
-                <div class="bg-white shadow-xl sm:rounded-lg overflow-hidden border-l-8 border-[#800000]">
-                    <table class="w-full text-left text-sm">
-                        <thead class="border-b-2 border-gray-100 bg-gray-50">
-                            <tr class="text-gray-800 font-black italic uppercase text-xs">
-                                <th class="px-6 py-4">Name</th>
-                                <th class="px-6 py-4">Email</th>
-                                <th class="px-6 py-4">Role</th>
-                                <th class="px-6 py-4">Office</th> <th class="px-6 py-4 text-center">Status</th>
+        {{-- Users Table --}}
+        <div class="bg-white shadow-xl rounded-xl overflow-hidden border border-gray-200">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-gray-800 text-white uppercase text-[11px] tracking-wider font-bold">
+                        <tr>
+                            <th class="px-6 py-4">Name</th>
+                            <th class="px-6 py-4">Email</th>
+                            <th class="px-6 py-4">Role</th>
+                            <th class="px-6 py-4">Office & Designation</th>
+                            <th class="px-6 py-4 text-center">Status</th>
+                            {{-- Only Admins see Actions --}}
+                            @if(auth()->user()->role === 'admin')
                                 <th class="px-6 py-4 text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 font-bold text-[#800000]">Sample Administrator</td>
-                                <td class="px-6 py-4 text-gray-500 italic lowercase text-xs">admin@ovpsas.edu.ph</td>
-                                <td class="px-6 py-4 text-xs font-bold">Admin</td>
-                                <td class="px-6 py-4 text-xs font-black text-gray-700">ARCDO</td> <td class="px-6 py-4 text-center">
-                                    <span class="bg-green-100 text-green-800 text-[10px] font-bold px-3 py-1 rounded-full uppercase">Active</span>
-                                </td>
-                                <td class="px-6 py-4 text-center">
-                                    <a href="{{ route('profile.edit') }}" 
-                                       class="inline-block bg-[#FCD116] hover:bg-yellow-400 text-[#4D0000] text-[10px] font-bold px-4 py-1.5 rounded-md transition shadow-sm uppercase tracking-wider">
-                                        Profile
-                                    </a>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                            @endif
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @forelse($users as $user)
+                        <tr class="hover:bg-yellow-50/50 transition-colors group">
+                            
+                            {{-- Name --}}
+                            <td class="px-6 py-4">
+                                <span class="font-black text-gray-800 uppercase text-xs">{{ $user->name }}</span>
+                            </td>
+
+                            {{-- Email --}}
+                            <td class="px-6 py-4 text-gray-500 text-xs font-mono">
+                                {{ $user->email }}
+                            </td>
+
+                            {{-- Role Badge --}}
+                            <td class="px-6 py-4">
+                                @if($user->role === 'admin')
+                                    <span class="bg-red-100 text-red-800 text-[10px] font-black px-2 py-1 rounded border border-red-200 uppercase">Admin</span>
+                                @elseif($user->role === 'staff')
+                                    <span class="bg-blue-100 text-blue-800 text-[10px] font-black px-2 py-1 rounded border border-blue-200 uppercase">Staff</span>
+                                @else
+                                    <span class="bg-gray-100 text-gray-600 text-[10px] font-black px-2 py-1 rounded border border-gray-200 uppercase">Viewer</span>
+                                @endif
+                            </td>
+
+                            {{-- Office --}}
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-gray-700 text-xs">{{ $user->office->name ?? 'No Office' }}</span>
+                                    <span class="text-[10px] text-gray-400 uppercase">{{ $user->designation ?? 'N/A' }}</span>
+                                </div>
+                            </td>
+
+                            {{-- Status --}}
+                            <td class="px-6 py-4 text-center">
+                                @if($user->status === 'approved')
+                                    <span class="inline-flex items-center gap-1 text-green-600 font-bold text-[10px] uppercase bg-green-50 px-2 py-1 rounded-full border border-green-100">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Active
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 text-yellow-600 font-bold text-[10px] uppercase bg-yellow-50 px-2 py-1 rounded-full border border-yellow-100">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span> Pending
+                                    </span>
+                                @endif
+                            </td>
+
+                            {{-- Actions (Edit Button) --}}
+                            @if(auth()->user()->role === 'admin')
+                            <td class="px-6 py-4 text-center">
+                                {{-- We use a simple JS toggle or a modal here normally. For now, a simple Edit Button --}}
+                                <button type="button" class="text-gray-400 hover:text-[#800000] transition font-bold text-[10px] uppercase flex items-center justify-center gap-1 mx-auto">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    Edit
+                                </button>
+                            </td>
+                            @endif
+
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-10">
+                                <p class="text-gray-400 italic text-sm">No users found matching your criteria.</p>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
-    </main>
 
-    <footer class="bg-gray-800 text-white py-6 text-center text-xs mt-auto">
-        &copy; {{ date('Y') }} OVPSAS. Polytechnic University of the Philippines.
-    </footer>
-</body>
-</html>
+    </div>
+@endsection

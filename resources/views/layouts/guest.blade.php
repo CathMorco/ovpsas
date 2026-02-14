@@ -15,9 +15,6 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans text-gray-900 antialiased">
-        <div style="background: red; color: white; padding: 10px; z-index: 9999; position: relative;">
-            DEBUG: Config URL is: {{ config('app.url') }}
-        </div>
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100 dark:bg-gray-900">
             <div>
                 <a href="/">

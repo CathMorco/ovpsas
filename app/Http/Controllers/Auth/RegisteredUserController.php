@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Office; // MERGED: Required for the dropdown
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,10 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
-        return view('auth.register');
+        // MERGED: Fetch offices so the registration form dropdown works
+        $offices = Office::all();
+
+        return view('auth.register', compact('offices'));
     }
 
     /**
@@ -33,21 +37,32 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'office_id' => ['required', 'integer'], // Add validation
-            'designation' => ['required', 'string', 'max:255'], // Add validation
+            
+            // MERGED: Use the safer validation rule
+            'office_id' => ['required', 'exists:offices,id'], 
+            'designation' => ['required', 'string', 'max:255'],
         ]);
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'office_id' => $request->office_id, // Save this
-            'designation' => $request->designation, // Save this
+            'office_id' => $request->office_id,
+            'designation' => $request->designation,
+            
+            // MERGED: Force status to pending so they can't access the site yet
+            'status' => 'pending', 
         ]);
 
-    event(new Registered($user));
+        event(new Registered($user));
 
-    Auth::login($user);
+        // ---------------------------------------------------------
+        // MERGED: STOP AUTO LOGIN
+        // We comment this out so they don't get into the dashboard immediately
+        // Auth::login($user); 
+        // ---------------------------------------------------------
 
-    return redirect(route('dashboard', absolute: false));
-}
+        // Redirect to login page with a success message
+        return redirect('/login')->with('status', 'Registration successful! Please wait for Admin approval.');
+    }
 }

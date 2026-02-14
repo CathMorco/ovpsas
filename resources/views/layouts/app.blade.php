@@ -15,9 +15,6 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
-        <div style="background: red; color: white; padding: 10px; z-index: 9999; position: relative;">
-            DEBUG: Config URL is: {{ config('app.url') }}
-        </div>
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
             @include('layouts.navigation')
 

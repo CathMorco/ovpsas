@@ -165,6 +165,7 @@
                     </div>
                     <div class="mt-3 space-y-1">
                         <a href="{{ route('profile.edit') }}" class="block px-3 py-2 text-base font-medium text-gray-200 hover:bg-red-800">Profile</a>
+                        <a href="{{ route('settings.edit') }}" class="block px-3 py-2 text-base font-medium text-gray-200 hover:bg-red-800">Settings</a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <a href="{{ route('logout') }}" class="block px-3 py-2 text-base font-medium text-gray-200 hover:bg-red-800" onclick="event.preventDefault(); this.closest('form').submit();">Log Out</a>
@@ -214,7 +215,6 @@
                                         Active Users
                                         <span class="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">{{ $activeUsers->count() }} Online</span>
                                     </h3>
-                                    
                                     @if($activeUsers->isEmpty())
                                         <p class="text-sm text-gray-500 italic">No other users are currently online.</p>
                                     @else
@@ -223,12 +223,15 @@
                                                 @php $status = getUserStatus($activeUser); @endphp
                                                 <li class="flex justify-between items-center group">
                                                     <div class="flex items-center gap-3">
-                                                        <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 group-hover:bg-[#800000] group-hover:text-white transition-colors">
-                                                            {{ substr($activeUser->name, 0, 1) }}
+                                                        <div class="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 group-hover:bg-[#800000] group-hover:text-white transition-all shadow-sm">
+                                                            @if($activeUser->avatar)
+                                                                <img src="{{ asset('storage/' . $activeUser->avatar) }}" alt="{{ $activeUser->name }}" class="w-full h-full object-cover">
+                                                            @else
+                                                                {{ substr($activeUser->name, 0, 1) }}
+                                                            @endif
                                                         </div>
                                                         <span class="text-gray-700 font-medium">{{ $activeUser->name }}</span>
                                                     </div>
-                                                    
                                                     <div class="flex items-center gap-2" title="{{ ucfirst($status) }}">
                                                         @if($status === 'online')
                                                             <span class="text-[10px] text-green-600 font-bold hidden group-hover:block">Online</span>
@@ -256,16 +259,41 @@
                                 </div>
 
                                 <div>
-                                    <h3 class="font-bold text-gray-800 mb-4">Recently Accessed Items</h3>
+                                    <h3 class="font-bold text-gray-800 mb-4 flex justify-between items-center">
+                                        <span>Recent Activity</span>
+                                        <span class="text-[10px] bg-red-100 text-red-800 px-2 py-1 rounded-full">Live</span>
+                                    </h3>
                                     <div class="space-y-3">
-                                        <div class="flex items-center bg-[#800000] rounded-xl p-3 shadow-md text-white">
-                                            <div class="bg-white/20 p-2 rounded-lg mr-3"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>
-                                            <div><p class="font-bold text-sm">Filename Gamboa</p><p class="text-xs text-yellow-300 opacity-90">Office of the Student Services (OSS)</p></div>
-                                        </div>
-                                        <div class="flex items-center bg-[#800000] rounded-xl p-3 shadow-md text-white">
-                                            <div class="bg-white/20 p-2 rounded-lg mr-3"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>
-                                            <div><p class="font-bold text-sm">Filename Laceda</p><p class="text-xs text-yellow-300 opacity-90">Alumni Relations and Career Development...</p></div>
-                                        </div>
+                                        @if(isset($recentActivities) && $recentActivities->count() > 0)
+                                            @foreach($recentActivities as $activity)
+                                            <div class="flex items-start bg-white border border-gray-200 rounded-xl p-3 shadow-sm hover:shadow-md transition duration-200">
+                                                <div class="w-8 h-8 rounded-full bg-[#800000] flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold mr-3 border-2 border-white shadow-sm">
+                                                    {{ substr($activity->user->name ?? '?', 0, 1) }}
+                                                </div>
+                                                <div class="flex-1 overflow-hidden">
+                                                    <p class="text-[10px] font-bold text-gray-900 uppercase tracking-wide">
+                                                        {{ $activity->user->name ?? 'Unknown User' }}
+                                                    </p>
+                                                    <p class="font-bold text-xs text-[#800000] truncate" title="{{ $activity->file_name }}">
+                                                        {{ $activity->file_name }}
+                                                    </p>
+                                                    <div class="flex items-center gap-1 mt-1">
+                                                        <span class="text-[9px] px-1.5 py-0.5 rounded text-white font-bold uppercase
+                                                            {{ $activity->action === 'Uploaded' ? 'bg-green-500' : 'bg-blue-400' }}">
+                                                            {{ $activity->action }}
+                                                        </span>
+                                                        <span class="text-[9px] text-gray-400">
+                                                            • {{ $activity->created_at->diffForHumans() }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @endforeach
+                                        @else
+                                            <div class="text-center py-6 bg-white rounded-lg border border-dashed border-gray-300">
+                                                <p class="text-xs text-gray-400 italic">System log is empty.</p>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
 
@@ -278,5 +306,20 @@
     </div>
     @endauth
 
+    <script>
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                window.location.reload();
+            }
+        });
+        window.addEventListener( "pageshow", function ( event ) {
+            var historyTraversal = event.persisted || 
+                                   ( typeof window.performance != "undefined" && 
+                                     window.performance.navigation.type === 2 );
+            if ( historyTraversal ) {
+                window.location.reload();
+            }
+        });
+    </script>
 </body>
 </html>

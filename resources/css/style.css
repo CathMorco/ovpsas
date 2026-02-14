@@ -1,6 +1,6 @@
 /* resources/css/user_profile/style.css */
 
-/* Hide scrollbar for the sidebar column */
+/* 1. Utility to hide scrollbars (Identical in both codes) */
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }
@@ -9,11 +9,23 @@
     scrollbar-width: none;
 }
 
-/* Maintain custom scrollbar for the table content only */
+/* 2. Custom Scrollbar Styling (Using the improved design from Code 2) */
 .custom-scroll::-webkit-scrollbar {
-    width: 6px;
+    width: 14px; /* Thicker area for better usability */
 }
-.custom-scroll::-webkit-scrollbar-thumb {
-    background: #800000;
+
+.custom-scroll::-webkit-scrollbar-track {
+    background: #f1f1f1; /* Light grey background ensures the user sees the scroll zone */
     border-radius: 10px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+    background: #800000; /* Maroon thumb */
+    border-radius: 10px;
+    border: 3px solid #f1f1f1; /* Creates padding so the bar looks like a floating pill */
+}
+
+/* Added Interaction: Darkens when you grab it */
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: #5a0000; 
 }

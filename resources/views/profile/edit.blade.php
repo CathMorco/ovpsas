@@ -1,34 +1,34 @@
 @extends('layouts.master')
 
-@section('title', 'Profile - OVPSAS')
+@section('title', 'Account Settings - OVPSAS')
 
 @section('content')
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            
-            <div class="mb-8 border-b-2 border-gray-200 pb-2">
-                <h2 class="font-black text-2xl text-[#800000] leading-tight uppercase tracking-wide">
-                    {{ __('Profile Settings') }}
-                </h2>
-            </div>
+<div class="pt-2 pb-12 bg-[#F3F4F6] min-h-screen">
+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
+        
+        {{-- Header Section --}}
+        <div class="mb-0">
+            <h2 class="font-black text-xl text-[#800000] leading-tight uppercase italic tracking-wider">
+                {{ __('Account Settings') }}
+            </h2>
+            <hr class="border-gray-300 mt-1">
+        </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg border-l-4 border-[#800000]">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-profile-information-form')
-                </div>
-            </div>
+        {{-- 1. Profile Information (Avatar, Name, Email) --}}
+        <div class="bg-white p-8 rounded-2xl shadow-sm border-l-8 border-[#800000]">
+            @include('profile.partials.update-profile-information-form')
+        </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg border-l-4 border-yellow-400">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-password-form')
-                </div>
-            </div>
+        {{-- 2. Update Password --}}
+        {{-- The ID here enables the automatic scroll after saving --}}
+        <div id="update-password" class="bg-white p-8 rounded-2xl shadow-sm border-l-8 border-[#800000]">
+            @include('profile.partials.update-password-form')
+        </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg border-l-4 border-red-600">
-                <div class="max-w-xl">
-                    @include('profile.partials.delete-user-form')
-                </div>
-            </div>
+        {{-- 3. Delete Account --}}
+        <div class="bg-white p-8 rounded-2xl shadow-sm border-l-8 border-[#800000]">
+            @include('profile.partials.delete-user-form')
         </div>
     </div>
+</div>
 @endsection
