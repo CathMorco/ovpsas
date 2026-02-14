@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Announcement extends Model
 {
@@ -26,6 +27,11 @@ class Announcement extends Model
     /**
      * Get the user that authored the announcement.
      */
+    protected $casts = [
+        'office' => 'array',
+        'category' => 'array',
+    ];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

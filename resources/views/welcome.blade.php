@@ -72,7 +72,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                     </svg>
                                     <span x-text="fileName ? fileName : 'Upload File'">Upload File</span>
-                                    <input type="file" name="attachment" class="hidden" @change="if($event.target.files[0]) fileName = $event.target.files[0].name;">
+                                    <input type="file" name="file" class="hidden" @change="if($event.target.files[0]) fileName = $event.target.files[0].name;">
                                 </label>
                                 <template x-if="fileName"><span class="text-[10px] text-green-600 font-bold italic">Selected: <span x-text="fileName"></span></span></template>
                             </div>
@@ -172,7 +172,9 @@
                         @forelse($announcements->take(10) as $announcement)
                         <div class="flex justify-between items-center text-[10px] text-gray-600 gap-2 border-b border-gray-50 pb-2 last:border-0">
                             <div class="truncate flex flex-col min-w-0">
-                                <span class="font-bold text-[#800000] uppercase text-[8px]">{{ $announcement->office }}</span>
+                                <span class="font-bold text-[#800000] uppercase text-[8px]">
+                                    {{ is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office }}
+                                </span>
                                 <span class="truncate italic uppercase font-bold text-gray-800">{{ $announcement->title }}</span>
                                 <span class="text-[7px] text-gray-400 font-medium">{{ $announcement->created_at->diffForHumans() }}</span>
                             </div>
