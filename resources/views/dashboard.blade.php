@@ -7,6 +7,7 @@
 
     <div class="max-w-7xl mx-auto px-6 lg:px-8 space-y-8 py-8" x-data="{ openComment: null }">
 
+        {{-- TOP STATS ROW --}}
         <div class="bg-white p-8 rounded-xl shadow-md border-t-4 border-[#800000]">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
@@ -34,13 +35,21 @@
                     <p class="text-[10px] font-bold text-green-700 uppercase tracking-widest">Uploaded This Month</p>
                     <h3 class="text-3xl font-black text-green-600">{{ $filesThisMonth }}</h3>
                 </div>
+                {{-- FIX: MOST ACTIVE OFFICE (Handle Array) --}}
                 <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 text-center">
                     <p class="text-[10px] font-bold text-blue-700 uppercase tracking-widest">Most Active Office</p>
-                    <h3 class="text-xl font-black text-blue-600 truncate" title="{{ $mostActiveOffice }}">{{ \Illuminate\Support\Str::limit($mostActiveOffice, 15) }}</h3>
+                    @php
+                        // Helper to handle Array vs String for the view
+                        $activeOfficeName = is_array($mostActiveOffice) ? implode(', ', $mostActiveOffice) : $mostActiveOffice;
+                    @endphp
+                    <h3 class="text-xl font-black text-blue-600 truncate" title="{{ $activeOfficeName }}">
+                        {{ \Illuminate\Support\Str::limit($activeOfficeName, 15) }}
+                    </h3>
                 </div>
             </div>
         </div>
 
+        {{-- CHARTS ROW --}}
         <div class="grid md:grid-cols-2 gap-6">
             <div class="bg-white p-5 shadow-md rounded-2xl border-t-4 border-yellow-400 flex flex-col h-[300px]">
                 <h3 class="font-black text-gray-700 mb-4 text-[10px] uppercase tracking-widest text-center">Category Distribution</h3>
@@ -57,8 +66,10 @@
             </div>
         </div>
 
+        {{-- MAIN CONTENT GRID --}}
         <div class="grid lg:grid-cols-5 gap-8">
             
+            {{-- FEED COLUMN --}}
             <div class="lg:col-span-3 space-y-6">
                 <div class="flex items-center gap-2 border-b-2 border-gray-800 pb-1">
                     <span class="w-2 h-6 bg-[#800000]"></span>
@@ -70,14 +81,18 @@
                     <div class="p-4 flex items-center justify-between border-b bg-gray-50/50">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-full bg-[#800000] flex items-center justify-center text-white font-bold text-xs shadow-inner uppercase">
-                                {{ substr($announcement->user->name ?? $announcement->office, 0, 1) }}
+                                {{ substr($announcement->user->name ?? (is_array($announcement->office) ? $announcement->office[0] : $announcement->office), 0, 1) }}
                             </div>
                             <div>
                                 <p class="text-xs font-black text-gray-900 uppercase tracking-tighter">{{ $announcement->user->name ?? 'Admin' }}</p>
-                                <p class="text-[9px] text-gray-400 font-bold uppercase">{{ $announcement->office }} • {{ $announcement->created_at->diffForHumans() }}</p>
+                                <p class="text-[9px] text-gray-400 font-bold uppercase">
+                                    {{ is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office }} • {{ $announcement->created_at->diffForHumans() }}
+                                </p>
                             </div>
                         </div>
-                        <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-[8px] font-black uppercase">{{ $announcement->category }}</span>
+                        <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-[8px] font-black uppercase">
+                            {{ is_array($announcement->category) ? implode(', ', $announcement->category) : $announcement->category }}
+                        </span>
                     </div>
 
                     <div class="p-5">
@@ -132,6 +147,7 @@
                 @endforelse
             </div>
 
+            {{-- FILE LIBRARY COLUMN --}}
             <div class="lg:col-span-2 space-y-6">
                 <div class="flex items-center gap-2 border-b-2 border-gray-800 pb-1">
                     <span class="w-2 h-6 bg-yellow-400"></span>
@@ -149,7 +165,9 @@
                                     <td class="px-4 py-3">
                                         <div class="flex flex-col">
                                             <span class="font-black text-gray-800 uppercase leading-tight">{{ $announcement->title }}</span>
-                                            <span class="text-[9px] text-gray-400 font-bold uppercase italic">{{ $announcement->office }}</span>
+                                            <span class="text-[9px] text-gray-400 font-bold uppercase italic">
+                                                {{ is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office }}
+                                            </span>
                                         </div>
                                     </td>
                                     <td class="px-4 py-3 text-right">
