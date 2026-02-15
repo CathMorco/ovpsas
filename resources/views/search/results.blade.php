@@ -17,7 +17,14 @@
                     <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-[#FCD116] flex justify-between items-center">
                         <div>
                             <h3 class="font-bold text-[#800000]">{{ $file->title ?? 'Untitled Document' }}</h3>
-                            <p class="text-xs text-gray-500">{{ $file->office }} • {{ $file->category }}</p>
+                            
+                            {{-- UPDATED: Handle Array or String for Office and Category --}}
+                            <p class="text-xs text-gray-500 uppercase font-semibold">
+                                {{ is_array($file->office) ? implode(', ', $file->office) : $file->office }} 
+                                • 
+                                {{ is_array($file->category) ? implode(', ', $file->category) : $file->category }}
+                            </p>
+                            
                             <p class="text-sm text-gray-700 mt-1">{{ Str::limit($file->content, 100) }}</p>
                         </div>
                         @if($file->file_path)
