@@ -24,13 +24,17 @@ class Announcement extends Model
     ];
 
     /**
-     * Get the user that authored the announcement.
+     * The attributes that should be cast.
+     * This is vital for saving multi-select data as JSON arrays.
      */
     protected $casts = [
         'office' => 'array',
         'category' => 'array',
     ];
 
+    /**
+     * Get the user that authored the announcement.
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

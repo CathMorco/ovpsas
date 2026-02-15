@@ -29,17 +29,27 @@ class ReportController extends Controller
 
     public function download()
     {
-        // Simple data only to ensure NO 500 ERROR
-        $data = [
-            'title' => 'System Utilization & Activity Report',
-            'date' => date('F d, Y'),
-            'totalFiles' => Schema::hasTable('files') ? DB::table('files')->count() : 125,
-            'filesThisMonth' => Schema::hasTable('files') ? DB::table('files')->whereMonth('created_at', Carbon::now()->month)->count() : 42,
-            'activeOffices' => Schema::hasTable('offices') ? DB::table('offices')->count() : 8,
-            'mostActive' => 'ARCDO'
-        ];
+        // 1. Fetch real data from the database
+        $announcements = \App\Models\Announcement::with('user')->latest()->get();
         
-        $pdf = Pdf::loadView('reports.pdf', $data);
+        // 2. Prepare counts
+        $totalCount = $announcements->count();
+        $activeUnits = $announcements->flatMap(function ($a) {
+            return is_array($a->office) ? $a->office : [$a->office];
+        })->unique()->count();
+
+        // 3. Prepare the data array (MAKE SURE 'title' IS HERE)
+        $data = [
+            'title' => 'OVPSAS System Utilization Report', // <--- This was missing!
+            'totalCount' => $totalCount,
+            'activeUnits' => $activeUnits,
+            'announcements' => $announcements,
+            'generatedAt' => \Carbon\Carbon::now()->format('F j, Y'),
+        ];
+
+        // 4. Load the view and download
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.pdf', $data);
+        
         return $pdf->download('OVPSAS-Official-Report.pdf');
     }
 }

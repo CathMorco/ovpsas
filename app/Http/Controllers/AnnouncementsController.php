@@ -1,51 +1,54 @@
 <?php
 
-namespace App\Models;
+namespace App\Http\Controllers;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Http\Request;
+use App\Models\Announcement;
+use App\Models\RecentActivity;
+use Illuminate\Support\Facades\Auth;
 
-class Announcement extends Model
+class AnnouncementsController extends Controller
 {
-    use HasFactory;
-
     /**
-     * The attributes that are mass assignable.
+     * Store a newly created announcement in storage.
      */
-    protected $fillable = [
-        'user_id',
-        'office',
-        'category',
-        'title',
-        'content',
-        'file_path',
-    ];
-
-    /**
-     * The attributes that should be cast.
-     * * CRITICAL: This allows your Controller to save ['OSS', 'ARCDO'] directly.
-     * Laravel will automatically convert it to JSON format ["OSS","ARCDO"] for the database.
-     */
-    protected $casts = [
-        'office' => 'array',
-        'category' => 'array',
-    ];
-
-    /**
-     * Get the user that authored the announcement.
-     */
-    public function user(): BelongsTo
+    public function store(Request $request)
     {
-        return $this->belongsTo(User::class);
-    }
+        $request->validate([
+            'office' => 'required|array',
+            'category' => 'required|array',
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+            'file' => 'nullable|file|max:10240', // Matches the name="file" in your Blade view
+        ]);
 
-    /**
-     * Get the comments for the announcement.
-     */
-    public function comments(): HasMany
-    {
-        return $this->hasMany(Comment::class);
+        $filePath = null;
+        $fileName = null;
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $fileName = $file->getClientOriginalName();
+            // Store in public/uploads to keep it clean
+            $filePath = $file->storeAs('uploads', time() . '_' . $fileName, 'public');
+        }
+
+        Announcement::create([
+            'user_id' => Auth::id(),
+            'office' => $request->office,
+            'category' => $request->category,
+            'title' => $request->title,
+            'content' => $request->content,
+            'file_path' => $filePath,
+        ]);
+
+        // Optional: Log activity for the Dashboard Sidebar
+        RecentActivity::create([
+            'user_id' => Auth::id(),
+            'file_name' => $fileName ?? 'Announcement: ' . $request->title,
+            'office_name' => implode(', ', $request->office),
+            'action' => 'Uploaded'
+        ]);
+
+        return back()->with('success', 'Announcement published successfully!');
     }
 }
