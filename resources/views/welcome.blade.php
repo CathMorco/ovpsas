@@ -13,7 +13,7 @@
             </div>
         @endif
 
-        {{-- ANNOUNCEMENT BOARD --}}
+{{-- ANNOUNCEMENT BOARD --}}
         <div class="bg-white shadow-xl sm:rounded-lg border-l-8 border-[#800000]">
             <div class="bg-[#800000] py-3 px-6 flex items-center gap-3">
                 <span class="w-1.5 h-5 bg-[#FCD116]"></span>
@@ -24,55 +24,111 @@
                     @csrf
                     <div class="max-w-5xl space-y-5">
                         
-                        {{-- Row 1: Target Office & Category --}}
-                        <div class="flex flex-col md:flex-row gap-6">
+                        {{-- Row 1: Target Office & Category (UPDATED DROPDOWNS) --}}
+                        <div class="flex flex-col md:flex-row gap-6 items-start relative z-20">
                             
-                            {{-- Target Office --}}
-                            <div class="flex items-center gap-4 flex-1">
-                                <label class="font-bold text-[#800000] w-20 text-sm">Target:</label>
-                                <select name="office" @mousedown="!isLoggedIn && ($event.preventDefault(), triggerAuthNotice())" class="flex-grow bg-gray-100 border-none rounded-md px-4 py-2.5 text-sm focus:ring-2 focus:ring-yellow-400" required>
-                                    <option value="" disabled selected>Select Office...</option>
-                                    {{-- DYNAMIC OFFICES --}}
-                                    @foreach(\App\Models\Office::all() as $office)
-                                        <option value="{{ $office->code }}">{{ $office->name }} ({{ $office->code }})</option>
-                                    @endforeach
-                                    <option value="All Offices">All Offices</option>
-                                </select>
+                            {{-- 1. Target Office Dropdown --}}
+                            <div class="flex flex-col flex-1 w-full" x-data="{ open: false, selected: [] }">
+                                <label class="font-bold text-[#800000] text-sm mb-1">Target Offices:</label>
+                                
+                                {{-- Wrapper: Handles 'Click Away' to close --}}
+                                <div class="relative" @click.away="open = false">
+                                    
+                                    {{-- The Trigger: ONLY clicking this toggles the menu --}}
+                                    <div @click="open = !open" class="w-full bg-gray-100 border border-gray-200 rounded-md px-4 py-2.5 text-sm cursor-pointer flex justify-between items-center hover:bg-gray-200 transition">
+                                        <span x-text="selected.length > 0 ? selected.join(', ') : 'Select Offices...'" :class="selected.length > 0 ? 'text-gray-800 font-bold' : 'text-gray-500'"></span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" :class="{'rotate-180': open}" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+
+                                    {{-- The Dropdown: Flex container for Sticky Footer --}}
+                                    <div x-show="open" x-cloak class="absolute top-full left-0 w-full bg-white border border-gray-200 rounded-md shadow-xl mt-1 z-50 flex flex-col overflow-hidden">
+                                        
+                                        {{-- Scrollable List Area (max-h-60) --}}
+                                        <div class="max-h-60 overflow-y-auto p-2 space-y-1">
+                                            <label class="flex items-center space-x-3 p-2 hover:bg-yellow-50 rounded cursor-pointer transition">
+                                                <input type="checkbox" name="office[]" value="All Offices" x-model="selected" class="form-checkbox h-4 w-4 text-[#800000] rounded focus:ring-yellow-400">
+                                                <span class="text-sm font-bold text-[#800000]">All Offices</span>
+                                            </label>
+                                            <div class="border-t border-gray-100 my-1"></div>
+                                            @foreach(\App\Models\Office::all() as $office)
+                                                <label class="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer transition">
+                                                    <input type="checkbox" name="office[]" value="{{ $office->code }}" x-model="selected" class="form-checkbox h-4 w-4 text-[#800000] rounded focus:ring-yellow-400">
+                                                    <span class="text-sm text-gray-700">{{ $office->name }} ({{ $office->code }})</span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+
+                                        {{-- Sticky Footer with OK Button --}}
+                                        <div class="bg-gray-50 border-t border-gray-100 p-2 flex justify-end">
+                                            <button type="button" @click="open = false" class="bg-[#800000] text-white text-xs font-bold px-4 py-1.5 rounded hover:bg-red-900 transition uppercase tracking-wider">
+                                                OK
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                            {{-- Category --}}
-                            <div class="flex items-center gap-4 flex-1">
-                                <label class="font-bold text-[#800000] w-20 text-sm">Category:</label>
-                                <select name="category" @mousedown="!isLoggedIn && ($event.preventDefault(), triggerAuthNotice())" class="flex-grow bg-gray-100 border-none rounded-md px-4 py-2.5 text-sm focus:ring-2 focus:ring-yellow-400" required>
-                                    <option value="" disabled selected>Select Category...</option>
-                                    @foreach(['Memorandums', 'Executive Orders', 'Reports', 'Minutes of Meeting', 'Activity Proposals', 'Letters', 'Financials', 'Forms', 'Policies', 'MOAs', 'Masterlists', 'Event Material', 'Others'] as $cat)
-                                        <option value="{{ $cat }}">{{ $cat }}</option>
-                                    @endforeach
-                                </select>
+                            {{-- 2. Category Dropdown --}}
+                            <div class="flex flex-col flex-1 w-full" x-data="{ open: false, selected: [] }">
+                                <label class="font-bold text-[#800000] text-sm mb-1">Categories:</label>
+                                
+                                <div class="relative" @click.away="open = false">
+                                    {{-- Trigger --}}
+                                    <div @click="open = !open" class="w-full bg-gray-100 border border-gray-200 rounded-md px-4 py-2.5 text-sm cursor-pointer flex justify-between items-center hover:bg-gray-200 transition">
+                                        <span x-text="selected.length > 0 ? selected.join(', ') : 'Select Categories...'" :class="selected.length > 0 ? 'text-gray-800 font-bold' : 'text-gray-500'"></span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" :class="{'rotate-180': open}" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+
+                                    {{-- Dropdown --}}
+                                    <div x-show="open" x-cloak class="absolute top-full left-0 w-full bg-white border border-gray-200 rounded-md shadow-xl mt-1 z-50 flex flex-col overflow-hidden">
+                                        
+                                        {{-- Scrollable List --}}
+                                        <div class="max-h-60 overflow-y-auto p-2 space-y-1">
+                                            @foreach(['Memorandums', 'Executive Orders', 'Reports', 'Minutes of Meeting', 'Activity Proposals', 'Letters', 'Financials', 'Forms', 'Policies', 'MOAs', 'Masterlists', 'Event Material', 'Others'] as $cat)
+                                                <label class="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer transition">
+                                                    <input type="checkbox" name="category[]" value="{{ $cat }}" x-model="selected" class="form-checkbox h-4 w-4 text-[#800000] rounded focus:ring-yellow-400">
+                                                    <span class="text-sm text-gray-700">{{ $cat }}</span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+
+                                        {{-- Sticky Footer --}}
+                                        <div class="bg-gray-50 border-t border-gray-100 p-2 flex justify-end">
+                                            <button type="button" @click="open = false" class="bg-[#800000] text-white text-xs font-bold px-4 py-1.5 rounded hover:bg-red-900 transition uppercase tracking-wider">
+                                                OK
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+
                         </div>
 
                         {{-- Row 2: Title --}}
-                        <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-4 relative z-0">
                             <label class="font-bold text-[#800000] w-20 text-sm">Title:</label>
                             <input type="text" name="title" placeholder="Enter Details..." @mousedown="!isLoggedIn && ($event.preventDefault(), triggerAuthNotice())" class="flex-grow bg-gray-100 border-none rounded-md px-4 py-2.5 italic text-sm focus:ring-2 focus:ring-yellow-400" required>
                         </div>
 
                         {{-- Row 3: Content --}}
-                        <div class="flex items-start gap-4">
+                        <div class="flex items-start gap-4 relative z-0">
                             <label class="font-bold text-[#800000] w-20 pt-2 text-sm">Content:</label>
                             <textarea name="content" rows="3" placeholder="Enter Details..." @mousedown="!isLoggedIn && ($event.preventDefault(), triggerAuthNotice())" class="flex-grow bg-gray-100 border-none rounded-md px-4 py-2.5 italic text-sm focus:ring-2 focus:ring-yellow-400 w-full"></textarea>
                         </div>
 
                         {{-- Row 4: File Upload & Submit --}}
-                        <div class="flex flex-col md:flex-row items-center justify-between gap-4 pl-0 md:pl-24" x-data="{ fileName: '' }">
+                        <div class="flex flex-col md:flex-row items-center justify-between gap-4 pl-0 md:pl-24 relative z-0" x-data="{ fileName: '' }">
                             <div class="flex items-center gap-3 w-full">
                                 <label @click="!isLoggedIn && ($event.preventDefault(), triggerAuthNotice())" class="cursor-pointer bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md text-xs font-bold transition flex items-center gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                     </svg>
                                     <span x-text="fileName ? fileName : 'Upload File'">Upload File</span>
-                                    <input type="file" name="file" class="hidden" @change="if($event.target.files[0]) fileName = $event.target.files[0].name;">
+                                    <input type="file" name="attachment" class="hidden" @change="if($event.target.files[0]) fileName = $event.target.files[0].name;">
                                 </label>
                                 <template x-if="fileName"><span class="text-[10px] text-green-600 font-bold italic">Selected: <span x-text="fileName"></span></span></template>
                             </div>
@@ -83,7 +139,7 @@
             </div>
         </div>
 
-        {{-- QUICK ACCESS BUTTONS --}}
+        {{-- QUICK ACCESS BUTTONS (Unchanged) --}}
         <div class="bg-white shadow-lg sm:rounded-lg border-l-8 border-[#800000]">
             <div class="bg-[#800000] py-3 px-6 flex items-center gap-3">
                 <span class="w-1.5 h-5 bg-[#FCD116]"></span>
@@ -105,7 +161,7 @@
             </div>
         </div>
 
-        {{-- THREE COLUMNS: MEMOS, EOS, RECENT --}}
+        {{-- THREE COLUMNS (Updated with whereJsonContains logic needed for Arrays) --}}
         <div class="grid lg:grid-cols-3 gap-10">
             
             {{-- 1. Memorandums --}}
@@ -116,7 +172,7 @@
                 </div>
                 <div class="p-6 overflow-y-auto max-h-[300px] transition-all duration-300" :class="!isLoggedIn ? 'blur-[4px] select-none pointer-events-none opacity-40' : ''">
                     <div class="space-y-3">
-                        @forelse($announcements->where('category', 'Memorandums') as $announcement)
+                        @forelse($announcements->filter(fn($a) => is_array($a->category) ? in_array('Memorandums', $a->category) : $a->category == 'Memorandums') as $announcement)
                             <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="flex items-center gap-3 text-sm text-gray-700 hover:text-[#800000] transition-colors group">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#800000] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -128,7 +184,6 @@
                         @endforelse
                     </div>
                 </div>
-                {{-- Login Overlay --}}
                 <div x-show="!isLoggedIn" @click="triggerAuthNotice()" class="absolute inset-0 top-11 bg-white/20 cursor-pointer flex flex-col items-center justify-center z-20">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#800000] opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                     <span class="text-[8px] font-black text-[#800000] mt-2 uppercase tracking-widest">Login to Access</span>
@@ -143,7 +198,7 @@
                 </div>
                 <div class="p-6 overflow-y-auto max-h-[300px] transition-all duration-300" :class="!isLoggedIn ? 'blur-[4px] select-none pointer-events-none opacity-40' : ''">
                     <div class="space-y-3">
-                        @forelse($announcements->where('category', 'Executive Orders') as $announcement)
+                        @forelse($announcements->filter(fn($a) => is_array($a->category) ? in_array('Executive Orders', $a->category) : $a->category == 'Executive Orders') as $announcement)
                             <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="flex items-center gap-3 text-sm text-gray-700 hover:text-[#800000] transition-colors group">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#800000] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -161,7 +216,7 @@
                 </div>
             </div>
 
-            {{-- 3. Recent Activity (All Categories) --}}
+            {{-- 3. Recent Activity --}}
             <div class="bg-white shadow-lg sm:rounded-lg border-l-8 border-[#800000] relative overflow-hidden">
                 <div class="bg-[#800000] py-3 px-6 flex items-center gap-3">
                     <span class="w-1.5 h-5 bg-[#FCD116]"></span>

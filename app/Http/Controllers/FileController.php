@@ -4,109 +4,139 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Announcement;
-use App\Models\RecentActivity; // <--- NEEDED for Dashboard Sidebar
+use App\Models\RecentActivity;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth;   // <--- NEEDED for User ID tracking
+use Illuminate\Support\Facades\Auth;
 
 class FileController extends Controller
 {
     /**
-     * Display the files within a specific office folder, grouped by category.
+     * Display the files for a specific office.
+     * NEW LOGIC: Queries Database instead of Physical Folders.
      */
-    public function showOfficeFolder($office)
+public function showOfficeFolder($office)
     {
-        $directory = "offices/{$office}";
+        // FIXED QUERY: Checks for the specific office OR "All Offices"
+        $files = Announcement::where(function ($query) use ($office) {
+            $query->whereJsonContains('office', $office)
+                  ->orWhereJsonContains('office', 'All Offices')
+                  // Fallback: If JSON fails, check purely as text string
+                  ->orWhere('office', 'LIKE', '%"'.$office.'"%')
+                  ->orWhere('office', 'LIKE', '%"All Offices"%');
+        })->latest()->get();
 
-        $files = Storage::disk('public')->exists($directory)
-                 ? Storage::disk('public')->allFiles($directory)
-                 : [];
+        // 2. Transform: Prepare the data for the view
+        $displayCollection = collect();
 
-        $groupedFiles = collect($files)->map(function($path) {
-            $parts = explode('/', $path);
-            $category = (count($parts) > 2) ? $parts[2] : 'General';
+        foreach ($files as $file) {
+            // Ensure categories are treated as an array (Handling Legacy String Data too)
+            $categories = is_array($file->category) ? $file->category : [$file->category];
 
-            return [
-                'category' => $category,
-                'name' => basename($path),
-                'path' => $path,
-                'url'  => asset('storage/' . $path),
-                'size' => round(Storage::disk('public')->size($path) / 1024, 2) . ' KB'
-            ];
-        })->groupBy('category');
+            foreach ($categories as $cat) {
+                $displayCollection->push([
+                    'id' => $file->id,
+                    'category' => $cat, // This sorts it into the right tab
+                    'name' => $file->title,
+                    'path' => $file->file_path,
+                    'url'  => route('file.view', $file->id),
+                    'size' => 'View File',
+                    'date' => $file->created_at->format('M d, Y'),
+                    'uploader' => $file->user->name ?? 'Unknown'
+                ]);
+            }
+        }
+
+        // 3. Group by Category for the View
+        $groupedFiles = $displayCollection->groupBy('category');
 
         return view('pages.office-files', compact('office', 'groupedFiles'));
     }
 
     /**
-     * Handles the Announcements Board with Office Folders and Categories
+     * Handles the Announcements Board with Multi-Office & Multi-Category Support
      */
     public function storeAnnouncement(Request $request)
     {
+        // 1. Validate inputs (Allow Arrays)
         $request->validate([
-            'office' => 'required|string',
-            'category' => 'required|string',
+            'office' => 'required',     // Can be Array or String
+            'category' => 'required',   // Can be Array or String
             'title' => 'required|string|max:255',
             'content' => 'required|string',
-            'attachment' => 'nullable|file|max:10240',
+            'attachment' => 'nullable|file|max:10240', // 10MB Max
         ]);
 
         $filePath = null;
         $fileName = null;
 
+        // 2. Handle File Upload (Centralized Storage)
         if ($request->hasFile('attachment')) {
-            $office = $request->input('office');
-            $category = $request->input('category');
             $file = $request->file('attachment');
-
             $fileName = $file->getClientOriginalName();
-            $filePath = $file->storeAs("offices/{$office}/{$category}", $fileName, 'public');
+            // Store in a flat 'uploads' folder with a timestamp to prevent overwriting
+            $storeName = time() . '_' . $fileName; 
+            $filePath = $file->storeAs('uploads', $storeName, 'public');
         }
 
+        // 3. Normalize Inputs to Arrays (Safety check)
+        // Even if the form sends a single string, we force it into an array for the DB
+        $offices = is_array($request->office) ? $request->office : [$request->office];
+        $categories = is_array($request->category) ? $request->category : [$request->category];
+
+        // 4. Create Database Record
+        // The Announcement Model's $casts = ['office' => 'array'] will auto-convert this to JSON
         Announcement::create([
             'user_id' => auth()->id(),
-            'office' => $request->office,
-            'category' => $request->category,
             'title' => $request->title,
             'content' => $request->content,
+            'office' => $offices, 
+            'category' => $categories,
             'file_path' => $filePath,
         ]);
 
-        // --- LOG ACTIVITY: Uploaded ---
+        // 5. Log Activity
         if ($filePath && $fileName) {
+            // Join array with commas for the log (e.g., "OSS, ARCDO")
+            $officeString = implode(', ', $offices);
+            
             RecentActivity::create([
                 'user_id'     => Auth::id(),
                 'file_name'   => $fileName,
-                'office_name' => $request->office, 
+                'office_name' => $officeString, 
                 'action'      => 'Uploaded'
             ]);
         }
 
-        return back()->with('success', 'Published to ' . $request->office . ' under ' . $request->category . ' successfully!');
+        return back()->with('success', 'Published successfully!');
     }
 
     /**
      * VIEW FILE: Logs activity and shows the file.
-     * REQUIRED for Dashboard Side Panel to work.
      */
     public function viewFile(Announcement $announcement)
     {
+        // Construct full path
         $path = storage_path('app/public/' . $announcement->file_path);
         
         if (!file_exists($path)) {
             abort(404);
         }
 
-        // 1. Delete previous logs for this file/user to prevent duplicates (bumping it to top)
+        // Handle Office Name for Logging (Since it's now an array in DB)
+        $offices = is_array($announcement->office) ? $announcement->office : [$announcement->office];
+        $officeString = implode(', ', $offices);
+        $fileName = basename($announcement->file_path);
+
+        // 1. Delete previous logs for this file/user (prevent duplicates)
         RecentActivity::where('user_id', Auth::id())
-            ->where('file_name', basename($announcement->file_path))
-            ->where('office_name', $announcement->office)
+            ->where('file_name', $fileName)
             ->delete();
 
         // 2. Create new "Opened" log
         RecentActivity::create([
             'user_id'     => Auth::id(),
-            'file_name'   => basename($announcement->file_path),
-            'office_name' => $announcement->office,
+            'file_name'   => $fileName,
+            'office_name' => $officeString,
             'action'      => 'Opened'
         ]);
 
@@ -120,10 +150,13 @@ class FileController extends Controller
     {
         $path = $request->input('file_path');
 
-        if (Storage::disk('public')->exists($path)) {
+        // 1. Delete from Storage
+        if ($path && Storage::disk('public')->exists($path)) {
             Storage::disk('public')->delete($path);
         }
 
+        // 2. Delete from Database
+        // We search by file_path to ensure we get the right record
         $announcement = Announcement::where('file_path', $path)->first();
 
         if ($announcement) {
@@ -135,7 +168,7 @@ class FileController extends Controller
     }
 
     /**
-     * Handles "Create New File" (Text based)
+     * Handles "Create New File" (Text based - Legacy Support)
      */
     public function store(Request $request)
     {
@@ -144,13 +177,14 @@ class FileController extends Controller
             'body' => 'required|string',
         ]);
 
-        // FileRecord logic removed as per your request in Code 2
+        // You can choose to save this as an announcement without a file attachment
+        // or keep your separate logic if you have a "FileRecord" model.
         
-        return back()->with('success', 'File data saved successfully!');
+        return back()->with('success', 'Text file saved successfully!');
     }
 
     /**
-     * Handles "Import File"
+     * Handles "Import File" (Legacy Support)
      */
     public function import(Request $request)
     {
@@ -160,9 +194,7 @@ class FileController extends Controller
 
         if ($request->hasFile('uploaded_file')) {
             $file = $request->file('uploaded_file');
-            $path = $file->storeAs('uploads', $file->getClientOriginalName(), 'public');
-            
-            // FileRecord logic removed as per your request in Code 2
+            $file->storeAs('uploads', $file->getClientOriginalName(), 'public');
         }
 
         return back()->with('success', 'File imported successfully!');

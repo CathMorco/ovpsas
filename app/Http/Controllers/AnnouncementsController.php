@@ -1,49 +1,51 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Models;
 
-use Illuminate\Http\Request;
-use App\Models\Announcement;
-use Illuminate\Support\Facades\Auth; // Better to import the Facade
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class AnnouncementsController extends Controller
+class Announcement extends Model
 {
-    public function store(Request $request)
+    use HasFactory;
+
+    /**
+     * The attributes that are mass assignable.
+     */
+    protected $fillable = [
+        'user_id',
+        'office',
+        'category',
+        'title',
+        'content',
+        'file_path',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     * * CRITICAL: This allows your Controller to save ['OSS', 'ARCDO'] directly.
+     * Laravel will automatically convert it to JSON format ["OSS","ARCDO"] for the database.
+     */
+    protected $casts = [
+        'office' => 'array',
+        'category' => 'array',
+    ];
+
+    /**
+     * Get the user that authored the announcement.
+     */
+    public function user(): BelongsTo
     {
-        // 1. Validation
-        // Ensure office.* and category.* are validated to ensure the array contents are strings
-        $validated = $request->validate([
-            'office'     => 'required|array|min:1',
-            'office.*'   => 'string',
-            'category'   => 'required|array|min:1',
-            'category.*' => 'string',
-            'title'      => 'nullable|string|max:255',
-            'content'    => 'required|string',
-            'file'       => 'nullable|file|max:5000',
-        ]);
+        return $this->belongsTo(User::class);
+    }
 
-        // 2. Instance Creation
-        $announcement = new Announcement();
-
-        // Use Auth::id() for clarity
-        $announcement->user_id = Auth::id();
-
-        // Assigning validated data
-        $announcement->office = $validated['office'];
-        $announcement->category = $validated['category'];
-        $announcement->title = $validated['title'];
-        $announcement->content = $validated['content'];
-
-        // 3. File Handling
-        if ($request->hasFile('file')) {
-            // This stores in storage/app/public/announcements
-            $path = $request->file('file')->store('announcements', 'public');
-            $announcement->file_path = $path;
-        }
-
-        $announcement->save();
-
-        return back()->with('success', 'Announcement posted!');
+    /**
+     * Get the comments for the announcement.
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
     }
 }

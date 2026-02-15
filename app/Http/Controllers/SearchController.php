@@ -3,26 +3,27 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\User; // Change this to whatever model you want to search (e.g., App\Models\Student)
+use App\Models\User;
+use App\Models\Announcement;
 
 class SearchController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Get the search term from the URL
-        $search = $request->input('query');
+        $query = $request->input('search'); // 'search' matches the input name in your form
 
-        // 2. Search the database (This example searches the 'name' or 'email' columns)
-        // If the search is empty, return nothing
-        $results = collect();
-        
-        if($search){
-            $results = User::where('name', 'LIKE', "%{$search}%")
-                           ->orWhere('email', 'LIKE', "%{$search}%")
-                           ->get();
-        }
+        // 1. Search Users (Name or Email)
+        $users = User::where('name', 'LIKE', "%{$query}%")
+                     ->orWhere('email', 'LIKE', "%{$query}%")
+                     ->get();
 
-        // 3. Return the results view with the data
-        return view('search.results', compact('results', 'search'));
+        // 2. Search Announcements/Files (Title, Content, or Office)
+        $announcements = Announcement::where('title', 'LIKE', "%{$query}%")
+                                     ->orWhere('content', 'LIKE', "%{$query}%")
+                                     ->orWhere('office', 'LIKE', "%{$query}%") // Finds files from a specific office
+                                     ->get();
+
+        // Return the view with both sets of data
+        return view('search.results', compact('users', 'announcements', 'query'));
     }
 }

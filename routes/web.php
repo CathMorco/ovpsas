@@ -11,6 +11,9 @@ use App\Http\Controllers\AdminController;  // Required for Admin
 use App\Models\Announcement;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\AdminMiddleware; // Required for Admin Protection
+use App\Http\Controllers\DirectoryController; 
+
+Route::get('/directory', [DirectoryController::class, 'index'])->name('directory.index');
 
 // --- Public Routes ---
 
