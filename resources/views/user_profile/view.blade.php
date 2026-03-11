@@ -95,7 +95,7 @@
                         <h3 class="text-white font-black tracking-widest uppercase text-sm">My Publications</h3>
                     </div>
 
-                    {{-- Filter Form (Preserved from Code 2 for functionality) --}}
+                    {{-- Filter Form --}}
                     <form action="{{ route('profile.edit') }}" method="GET" class="shrink-0">
                         <div class="bg-gray-50 p-4 border-b border-gray-200 grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-3">
                             
@@ -140,7 +140,10 @@
                                 <div class="flex justify-between items-start">
                                     <div>
                                         <div class="flex items-center gap-2 mb-1">
-                                            <span class="text-[9px] font-black text-[#800000] uppercase">{{ $announcement->office }}</span>
+                                            {{-- UPDATED: Handle Array or String for Office --}}
+                                            <span class="text-[9px] font-black text-[#800000] uppercase">
+                                                {{ is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office }}
+                                            </span>
                                             <span class="text-[9px] text-gray-300">•</span>
                                             <span class="text-[9px] text-gray-400 font-bold uppercase">{{ $announcement->created_at->diffForHumans() }}</span>
                                         </div>
@@ -148,8 +151,9 @@
                                             {{ $announcement->title }}
                                         </h4>
                                     </div>
+                                    {{-- UPDATED: Handle Array or String for Category --}}
                                     <span class="px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-[8px] font-black uppercase tracking-wide border border-yellow-200">
-                                        {{ $announcement->category }}
+                                        {{ is_array($announcement->category) ? implode(', ', $announcement->category) : $announcement->category }}
                                     </span>
                                 </div>
                                 
