@@ -48,12 +48,25 @@
                 @else
                     {{-- LOOP THROUGH CATEGORIES (Folders) --}}
                     @foreach($groupedFiles as $category => $files)
+
+                        {{-- LOGIC: Determine Folder Display Name --}}
+                        @php
+                            $folderName = $category;
+                            // Check if the current group is 'Others'
+                            if ($category === 'Others') {
+                                // Pull the custom name from the first file in this collection
+                                // Using data_get to safely handle both objects and arrays
+                                $folderName = data_get($files->first(), 'custom_category') ?: 'Others';
+                            }
+                        @endphp
+
                         <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-200">
                             <div class="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center gap-3">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
                                 </svg>
-                                <h2 class="font-black text-[#800000] uppercase tracking-widest text-xs">{{ $category }}</h2>
+                                {{-- Displaying the Dynamic Folder Name --}}
+                                <h2 class="font-black text-[#800000] uppercase tracking-widest text-xs">{{ $folderName }}</h2>
                                 <span class="text-[10px] bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">{{ count($files) }} item(s)</span>
                             </div>
 
@@ -68,15 +81,16 @@
                                                 </svg>
                                             </div>
                                             <div>
-                                                <p class="font-bold text-gray-800 text-sm tracking-wide uppercase">{{ $file['name'] }}</p>
+                                                {{-- Accessing data using data_get for consistency --}}
+                                                <p class="font-bold text-gray-800 text-sm tracking-wide uppercase">{{ data_get($file, 'name') }}</p>
                                                 <div class="flex items-center gap-3 mt-1">
-                                                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{{ $file['size'] }}</span>
+                                                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{{ data_get($file, 'size') }}</span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div class="flex items-center gap-2">
-                                            <a href="{{ $file['url'] }}" target="_blank" class="bg-gray-800 text-white px-3 py-1.5 rounded font-black text-[9px] hover:bg-black transition uppercase tracking-widest">
+                                            <a href="{{ data_get($file, 'url') }}" target="_blank" class="bg-gray-800 text-white px-3 py-1.5 rounded font-black text-[9px] hover:bg-black transition uppercase tracking-widest">
                                                 View
                                             </a>
 
@@ -84,7 +98,7 @@
                                                 <form action="{{ route('files.destroy') }}" method="POST" onsubmit="return confirm('Permanently delete this file?')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <input type="hidden" name="file_path" value="{{ $file['path'] }}">
+                                                    <input type="hidden" name="file_path" value="{{ data_get($file, 'path') }}">
                                                     <button type="submit" class="bg-red-600 text-white px-3 py-1.5 rounded font-black text-[9px] hover:bg-red-800 transition uppercase tracking-widest">
                                                         Delete
                                                     </button>

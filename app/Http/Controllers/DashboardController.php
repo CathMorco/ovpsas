@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Announcement;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
@@ -12,54 +11,59 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // --- 1. FETCH LIVE DATA (From Code 2) ---
-        // Fetch announcements with authors and comments
-        $announcements = Announcement::with(['user', 'comments.user'])->latest()->get();
+        // 1. FETCH ALL DATA
+        $allData = Announcement::with(['user', 'comments.user'])->latest()->get();
 
-        // Data for Pie Chart
-        $categoryData = Announcement::select('category', DB::raw('count(*) as total'))
-            ->groupBy('category')
-            ->get();
+        // 2. SEPARATION LOGIC
+        // calendarEvents: Anything that has a valid scheduled_date
+        $calendarEvents = $allData->filter(function ($item) {
+            return !empty($item->scheduled_date);
+        });
 
-        // Data for Bar Chart
-        $officeData = Announcement::select('office', DB::raw('count(*) as total'))
-            ->groupBy('office')
-            ->get();
+        // announcements: Everything else (Standard posts/announcements)
+        $announcements = $allData->filter(function ($item) {
+            return empty($item->scheduled_date);
+        });
 
+        // 3. CHART DATA
+        // Note: Using 'flatten' because your categories/offices are stored as arrays
+        $categoryData = $announcements->pluck('category')->flatten()->groupBy(fn($item) => $item)
+            ->map(fn($group, $key) => (object) ['category' => $key, 'total' => $group->count()])
+            ->values();
 
-        // --- 2. CALCULATE REPORT METRICS (Real data replacing Code 1) ---
-        
-        // Total Files (Count of all announcements)
+        $officeData = $announcements->pluck('office')->flatten()->groupBy(fn($item) => $item)
+            ->map(fn($group, $key) => (object) ['office' => $key, 'total' => $group->count()])
+            ->values();
+
+        // 4. METRICS
         $totalFiles = $announcements->count();
+        $activeOffices = $announcements->pluck('office')->flatten()->unique()->count();
 
-        // Active Offices (Count unique offices that have uploaded)
-        $activeOffices = $announcements->unique('office')->count();
-
-        // Files This Month (Filter the collection we already have)
-        $filesThisMonth = $announcements->filter(function ($item) {
-            return $item->created_at->month === Carbon::now()->month;
+        // Use created_at for monthly stats
+        $filesThisMonth = $announcements->filter(function($i) {
+            return optional($i->created_at)->isCurrentMonth();
         })->count();
 
-        // Most Active Office (Sort the office data we fetched for the chart)
         $mostActiveOffice = $officeData->sortByDesc('total')->first()->office ?? 'None';
 
-        // Recent Activities (Map the latest 5 announcements to the format the View expects)
-        $activities = $announcements->take(5)->map(function($item) {
+        $activities = $allData->take(5)->map(function($item) {
             return [
                 'date' => $item->created_at->format('M d, Y'),
-                'office' => $item->office,
+                // Display first office if it's an array
+                'office' => is_array($item->office) ? ($item->office[0] ?? 'N/A') : $item->office,
                 'action' => 'Published: ' . Str::limit($item->title, 20)
             ];
         });
 
-        // --- 3. RETURN EVERYTHING ---
+        // 5. RETURN EVERYTHING
         return view('dashboard', compact(
-            'announcements', 
-            'categoryData', 
+            'announcements',
+            'calendarEvents',
+            'categoryData',
             'officeData',
-            'totalFiles', 
-            'activeOffices', 
-            'filesThisMonth', 
+            'totalFiles',
+            'activeOffices',
+            'filesThisMonth',
             'mostActiveOffice',
             'activities'
         ));

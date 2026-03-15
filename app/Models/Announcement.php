@@ -4,8 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Announcement extends Model
 {
@@ -13,37 +11,32 @@ class Announcement extends Model
 
     /**
      * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
      */
     protected $fillable = [
         'user_id',
-        'office',
-        'category',
         'title',
         'content',
-        'file_path',
+        'scheduled_date',
+        'office',
+        'category',
     ];
 
     /**
      * The attributes that should be cast.
-     * This is vital for saving multi-select data as JSON arrays.
      */
     protected $casts = [
         'office' => 'array',
         'category' => 'array',
     ];
 
-    /**
-     * Get the user that authored the announcement.
-     */
-    public function user(): BelongsTo
+    public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Get the comments for the announcement.
-     */
-    public function comments(): HasMany
+    public function comments()
     {
         return $this->hasMany(Comment::class);
     }
