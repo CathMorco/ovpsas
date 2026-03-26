@@ -36,8 +36,12 @@
 
     @auth
         @php
-            $activeUsers = \App\Models\User::where('last_seen_at', '>=', now()->subDay())->orderBy('last_seen_at', 'desc')->get();
+            // 1. Fetch users active in the last 24 hours
+            $activeUsers = \App\Models\User::where('last_seen_at', '>=', now()->subDay())
+                ->orderBy('last_seen_at', 'desc')
+                ->get();
 
+            // 2. Logic to determine status badge and text
             $getUserStatusDetails = function($user) {
                 if (!$user->last_seen_at) return ['color' => 'bg-gray-300', 'text' => 'Offline'];
                 $diff = $user->last_seen_at->diffInMinutes(now());
@@ -46,6 +50,7 @@
                 return ['color' => 'bg-gray-400', 'text' => 'Active ' . $user->last_seen_at->diffForHumans()];
             };
 
+            // 3. Count pending registrations (Matches status field in DB)
             $pendingCount = \App\Models\User::where('status', 'pending')->count();
         @endphp
     @endauth
@@ -71,12 +76,16 @@
                     @auth
                         <a href="{{ route('dashboard') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('dashboard') ? 'border-b-2 border-yellow-400' : '' }}">Dashboard</a>
                         
-                        {{-- Accessible by Everyone --}}
+                        {{-- STAFF DIRECTORY: Accessible by everyone --}}
                         <a href="{{ route('directory.index') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('directory*') ? 'border-b-2 border-yellow-400' : '' }}">Staff Directory</a>
 
-                        {{-- Admin Management Links --}}
-                        @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
+                        {{-- USER MANAGEMENT: ONLY for Super Admins --}}
+                        @if(auth()->user()->isSuperAdmin())
                             <a href="{{ route('users.list') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('userslist*') ? 'border-b-2 border-yellow-400' : '' }}">Management</a>
+                        @endif
+
+                        {{-- APPROVALS: For both Admins and Super Admins --}}
+                        @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
                             <a href="{{ route('admin.approvals') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm flex items-center gap-2 {{ Request::is('approvals*') ? 'border-b-2 border-yellow-400' : '' }}">
                                 Approvals 
                                 @if($pendingCount > 0)
@@ -89,21 +98,20 @@
                 </div>
 
                 <div class="hidden sm:flex sm:items-center sm:ms-6 gap-4">
-                    {{-- Search and Profile (same as before) --}}
                     <form action="{{ route('search') }}" method="GET" class="relative w-64">
-                        <input type="text" name="search" placeholder="Search..." class="w-full bg-white text-gray-800 rounded-full px-4 py-1.5 text-sm border-none focus:ring-2 focus:ring-yellow-400">
-                        <button type="submit" class="absolute right-1 top-1/2 -translate-y-1/2 bg-[#FCD116] p-1 rounded-full hover:bg-yellow-300">
+                        <input type="text" name="search" placeholder="Search..." class="w-full bg-white text-gray-800 rounded-full px-4 py-1.5 text-sm border-none focus:ring-2 focus:ring-yellow-400 outline-none">
+                        <button type="submit" class="absolute right-1 top-1/2 -translate-y-1/2 bg-[#FCD116] p-1 rounded-full hover:bg-yellow-300 transition">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                         </button>
                     </form>
 
                     @guest
-                        <a href="{{ route('login') }}" class="text-white font-bold text-sm hover:text-yellow-300 uppercase tracking-widest">Log in</a>
+                        <a href="{{ route('login') }}" class="text-white font-bold text-sm hover:text-yellow-300 uppercase tracking-widest transition">Log in</a>
                     @else
                         <div class="flex items-center gap-4">
                             <x-dropdown align="right" width="48">
                                 <x-slot name="trigger">
-                                    <button class="text-white font-bold text-sm flex items-center gap-1 hover:text-yellow-300 transition">
+                                    <button class="text-white font-bold text-sm flex items-center gap-1 hover:text-yellow-300 transition uppercase">
                                         {{ Auth::user()->name }}
                                         <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
                                     </button>
@@ -127,16 +135,17 @@
 
     <main class="flex-grow py-10">@yield('content')</main>
 
-    <footer class="bg-gray-800 text-white py-4 text-center text-xs">&copy; {{ date('Y') }} OVPSAS. PUP.</footer>
+    <footer class="bg-gray-800 text-white py-4 text-center text-xs">&copy; {{ date('Y') }} OVPSAS. Polytechnic University of the Philippines.</footer>
 
-    {{-- Quick Panel Sidebar --}}
+    {{-- Slide-over Sidebar (Quick Panel) --}}
     @auth
     <div class="relative z-50" x-show="sidebarOpen" x-cloak>
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="sidebarOpen = false"></div>
         <div class="fixed inset-0 overflow-hidden">
             <div class="absolute inset-0 overflow-hidden">
                 <div class="fixed inset-y-0 right-0 flex max-w-full pl-10">
-                    <div class="w-screen max-w-md pointer-events-auto" x-show="sidebarOpen" x-transition:enter="transform transition ease-in-out duration-500" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transform transition ease-in-out duration-500" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full">
+                    <div class="w-screen max-w-md pointer-events-auto"
+                         x-show="sidebarOpen" x-transition:enter="transform transition ease-in-out duration-500" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transform transition ease-in-out duration-500" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full">
                         <div class="flex h-full flex-col bg-white shadow-xl">
                             <div class="px-4 py-6 bg-[#800000] flex justify-between items-center text-white">
                                 <h2 class="text-lg font-bold">Quick Panel</h2>
@@ -166,7 +175,7 @@
                                     </div>
                                 </div>
 
-                                {{-- Active Users Section (from previous code) --}}
+                                {{-- Recent Activity --}}
                                 <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                                     <h3 class="text-[10px] font-black uppercase text-gray-800 tracking-widest mb-4 flex justify-between">Recent Activity <span>{{ $activeUsers->count() }} Users</span></h3>
                                     <ul class="space-y-4">
@@ -187,7 +196,6 @@
                                         @endforeach
                                     </ul>
                                 </div>
-
                             </div>
                         </div>
                     </div>

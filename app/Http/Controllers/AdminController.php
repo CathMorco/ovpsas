@@ -9,51 +9,43 @@ use Illuminate\Http\Request;
 class AdminController extends Controller
 {
     /**
-     * MASTER DIRECTORY / MANAGEMENT
-     * Shows all approved faculty and staff.
+     * MASTER MANAGEMENT (Super Admin Only)
+     * Admins are redirected away from here by middleware.
      */
     public function index()
     {
-        $users = User::with('office')->where('status', 'Approved')->get();
+        // Super Admins see all approved users.
+        // We sort by 'requesting_admin' so people asking for promotion appear at the top!
+        $users = User::with('office')
+            ->where('status', 'Approved')
+            ->orderBy('requesting_admin', 'desc') 
+            ->orderBy('name', 'asc')
+            ->get();
+
         $offices = Office::all();
-        return view('admin.users_management', compact('users', 'offices'));
+        return view('admin.usermanagement', compact('users', 'offices'));
     }
 
     /**
-     * APPROVALS QUEUE
-     * Shows users who registered but aren't admitted yet.
+     * REGISTRATION APPROVALS (Both Admin & Super Admin)
      */
     public function approvals()
     {
-        // Grabs everyone with "Pending" status
         $pendingUsers = User::with('office')->where('status', 'Pending')->get();
         return view('admin.approvals', compact('pendingUsers'));
     }
 
     /**
-     * ACTION: ADMIT FACULTY
+     * ACTION: STAFF REQUESTS PROMOTION
      */
-    public function approveUser($id)
+    public function requestPromotion()
     {
-        $user = User::findOrFail($id);
-        $user->update(['status' => 'Approved']);
-
-        return back()->with('success', "{$user->name} has been admitted to the system.");
+        auth()->user()->update(['requesting_admin' => true]);
+        return back()->with('success', 'Your request for Admin status has been submitted to the Super Admin.');
     }
 
     /**
-     * ACTION: REJECT REGISTRATION
-     */
-    public function declineUser($id)
-    {
-        $user = User::findOrFail($id);
-        $user->delete(); // Removes the request from the DB
-
-        return back()->with('success', "Registration request removed.");
-    }
-
-    /**
-     * SUPER ADMIN: ROLE MANAGEMENT
+     * ACTION: CHANGE ROLES
      */
     public function updateRole(Request $request)
     {
@@ -63,23 +55,31 @@ class AdminController extends Controller
         ]);
 
         $user = User::findOrFail($request->user_id);
-
+        
+        // Safety check
         if (auth()->id() === $user->id && $request->role !== 'Super Admin') {
             return back()->with('error', 'You cannot demote yourself.');
         }
 
-        $user->update(['role' => $request->role]);
-        return back()->with('success', "Role for {$user->name} updated to {$request->role}.");
-    }
-
-    public function updateDesignation(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
+        // If promoted to Admin, clear the request flag
         $user->update([
-            'designation' => $request->designation,
-            'office_id' => $request->office_id
+            'role' => $request->role,
+            'requesting_admin' => ($request->role === 'Admin' || $request->role === 'Super Admin') ? false : $user->requesting_admin
         ]);
 
-        return back()->with('success', 'User details updated.');
+        return back()->with('success', "Role updated for {$user->name}.");
+    }
+
+    public function approveUser($id)
+    {
+        $user = User::findOrFail($id);
+        $user->update(['status' => 'Approved']);
+        return back()->with('success', "{$user->name} admitted to system.");
+    }
+
+    public function declineUser($id)
+    {
+        User::findOrFail($id)->delete();
+        return back()->with('success', "Registration request removed.");
     }
 }

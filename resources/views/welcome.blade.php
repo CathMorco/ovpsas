@@ -13,6 +13,14 @@
             </div>
         @endif
 
+        {{-- Error Message (For File Access) --}}
+        @if(session('error'))
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-sm mb-6" role="alert">
+                <p class="font-bold">Error</p>
+                <p class="text-sm">{{ session('error') }}</p>
+            </div>
+        @endif
+
         {{-- ANNOUNCEMENT BOARD --}}
         <div class="bg-white shadow-xl sm:rounded-lg border-l-8 border-[#800000]">
             <div class="bg-[#800000] py-3 px-6 flex items-center gap-3">
@@ -104,7 +112,7 @@
                                 @enderror
                             </div>
 
-                            {{-- 3. NEW: Target Date Picker --}}
+                            {{-- 3. Target Date Picker --}}
                             <div class="flex flex-col w-full md:w-48">
                                 <label class="font-bold text-[#800000] text-sm mb-1">Target Date (Optional):</label>
                                 <input type="date" name="scheduled_date" value="{{ old('scheduled_date') }}"
@@ -192,12 +200,17 @@
                 <div class="p-6 overflow-y-auto max-h-[300px]">
                     <div class="space-y-3">
                         @forelse($announcements->filter(fn($a) => is_array($a->category) ? in_array('Memorandums', $a->category) : $a->category == 'Memorandums') as $announcement)
-                            <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="flex items-center gap-3 text-sm text-gray-700 hover:text-[#800000] transition-colors group">
+                            <div class="flex items-center gap-3">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#800000] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                 </svg>
-                                <span class="truncate block text-[11px] font-bold uppercase" title="{{ $announcement->title }}">{{ $announcement->title }}</span>
-                            </a>
+                                <span class="truncate block text-[11px] font-bold uppercase flex-grow" title="{{ $announcement->title }}">{{ $announcement->title }}</span>
+                                
+                                {{-- Safety Wrap for View Button --}}
+                                @if($announcement->file_path)
+                                    <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="bg-gray-100 text-[#800000] px-2 py-0.5 rounded text-[8px] font-black uppercase hover:bg-red-50 transition border border-red-100">VIEW</a>
+                                @endif
+                            </div>
                         @empty
                             <p class="text-[10px] text-gray-400 italic text-center">Empty.</p>
                         @endforelse
@@ -214,12 +227,17 @@
                 <div class="p-6 overflow-y-auto max-h-[300px]">
                     <div class="space-y-3">
                         @forelse($announcements->filter(fn($a) => is_array($a->category) ? in_array('Executive Orders', $a->category) : $a->category == 'Executive Orders') as $announcement)
-                            <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="flex items-center gap-3 text-sm text-gray-700 hover:text-[#800000] transition-colors group">
+                            <div class="flex items-center gap-3">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#800000] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                 </svg>
-                                <span class="truncate block text-[11px] font-bold uppercase" title="{{ $announcement->title }}">{{ $announcement->title }}</span>
-                            </a>
+                                <span class="truncate block text-[11px] font-bold uppercase flex-grow" title="{{ $announcement->title }}">{{ $announcement->title }}</span>
+                                
+                                {{-- Safety Wrap for View Button --}}
+                                @if($announcement->file_path)
+                                    <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="bg-gray-100 text-[#800000] px-2 py-0.5 rounded text-[8px] font-black uppercase hover:bg-red-50 transition border border-red-100">VIEW</a>
+                                @endif
+                            </div>
                         @empty
                             <p class="text-[10px] text-gray-400 italic text-center">Empty.</p>
                         @endforelse
@@ -260,6 +278,8 @@
 
                                 <span class="text-[7px] text-gray-400 font-medium">{{ $announcement->created_at->diffForHumans() }}</span>
                             </div>
+                            
+                            {{-- Safety Wrap for View Button --}}
                             @if($announcement->file_path)
                                 <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="bg-[#4D0000] text-white px-3 py-1 rounded text-[8px] hover:bg-red-800 transition uppercase shrink-0 font-bold">VIEW</a>
                             @endif

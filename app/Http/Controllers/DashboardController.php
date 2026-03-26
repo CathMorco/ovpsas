@@ -8,50 +8,74 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
+    /**
+     * Display the System Administrative Report and Feed.
+     */
     public function index()
     {
-        // 1. Fetch ALL announcements with relationships
+        // 1. Fetch ALL data with essential relationships
         $all = Announcement::with(['user', 'comments.user'])->latest()->get();
 
-        // 2. Partitioning for display
-        $upcomingEvents = $all->filter(fn($i) => 
-            !empty($i->scheduled_date) && 
-            Carbon::parse($i->scheduled_date)->isAfter(now()->startOfDay())
-        )->sortBy('scheduled_date');
+        // 2. Partitioning Logic for UI Display
+        
+        // SIDEBAR CALENDAR: Items that have a scheduled date in the future (or today)
+        $upcomingEvents = $all->filter(function ($item) {
+            return !empty($item->scheduled_date) && 
+                   Carbon::parse($item->scheduled_date)->isAfter(now()->startOfDay());
+        })->sortBy('scheduled_date');
 
-        // Feed shows EVERYTHING
+        // ANNOUNCEMENT FEED: Show everything (No rejection logic to ensure feed isn't empty)
         $feedItems = $all; 
 
-        // Repository shows only items with files
-        $repositoryFiles = $all->filter(fn($i) => !empty($i->file_path));
+        // REPOSITORY: Only items that have a physical file attachment
+        $repositoryFiles = $all->filter(fn($item) => !empty($item->file_path));
 
-        // 3. Chart Data Calculations
-        $categoryData = $all->pluck('category')->flatten()->filter()->groupBy(fn($c) => $c)
-            ->map(fn($g, $key) => (object)['category' => $key, 'total' => $g->count()])->values();
+        // 3. Analytic & Chart Data Calculations
+        
+        // Category Distribution (Flattened because categories are stored as JSON/Arrays)
+        $categoryData = $all->pluck('category')->flatten()->filter()
+            ->groupBy(fn($cat) => $cat)
+            ->map(fn($group, $key) => (object) ['category' => $key, 'total' => $group->count()])
+            ->values();
 
-        $officeData = $all->pluck('office')->flatten()->filter()->groupBy(fn($o) => $o)
-            ->map(fn($g, $key) => (object)['office' => $key, 'total' => $g->count()])->values();
+        // Office Distribution
+        $officeData = $all->pluck('office')->flatten()->filter()
+            ->groupBy(fn($off) => $off)
+            ->map(fn($group, $key) => (object) ['office' => $key, 'total' => $group->count()])
+            ->values();
 
-        // Filtered data for the Bar Chart (Excludes 'General' labels for cleaner visual)
+        // FILTERED OFFICE DATA: Excludes generic labels to keep the Bar Chart clean
         $filteredOfficeData = $officeData->reject(fn($o) => 
             in_array(strtolower($o->office), ['general', 'all offices'])
         );
 
-        // 4. Final Stats
-        $totalActualFiles = $all->count();
-        $filesThisMonthCount = $all->filter(fn($i) => $i->created_at->isCurrentMonth())->count();
+        // 4. Primary Metrics
+        
+        // Total Volume of Posts/Files
+        $totalActualFiles = $all->count(); 
+        
+        // Number of specific monitored offices active in the system
+        $monitoredOfficesCount = $filteredOfficeData->count();
+
+        // Growth metrics for the current month
+        $filesThisMonthCount = $all->filter(function($item) {
+            return $item->created_at && $item->created_at->isCurrentMonth();
+        })->count();
+
+        // Identify the top performer
         $mostActiveOffice = $filteredOfficeData->sortByDesc('total')->first()->office ?? 'N/A';
 
+        // 5. Return view with all required variables
         return view('dashboard', [
-            'upcomingEvents' => $upcomingEvents,
-            'feedItems' => $feedItems,
-            'repositoryFiles' => $repositoryFiles,
-            'totalActualFiles' => $totalActualFiles,
-            'monitoredOfficesCount' => $filteredOfficeData->count(),
-            'filesThisMonthCount' => $filesThisMonthCount,
-            'mostActiveOffice' => $mostActiveOffice,
-            'categoryData' => $categoryData,
-            'filteredOfficeData' => $filteredOfficeData // <--- Fixed variable name
+            'upcomingEvents'        => $upcomingEvents,
+            'feedItems'             => $feedItems,
+            'repositoryFiles'       => $repositoryFiles,
+            'totalActualFiles'      => $totalActualFiles,
+            'monitoredOfficesCount' => $monitoredOfficesCount,
+            'filesThisMonthCount'   => $filesThisMonthCount,
+            'mostActiveOffice'      => $mostActiveOffice,
+            'categoryData'          => $categoryData,
+            'filteredOfficeData'    => $filteredOfficeData // Crucial: Fixes the Blade error
         ]);
     }
 }

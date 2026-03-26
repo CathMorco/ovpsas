@@ -10,15 +10,11 @@ class ProfileUpdateRequest extends FormRequest
 {
     /**
      * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            
-            // Merged: Uses the modern Rule syntax + lowercase check
             'email' => [
                 'required', 
                 'string', 
@@ -27,13 +23,23 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255', 
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
-
-            // Merged: Includes all your custom profile fields
-            'avatar'      => ['nullable', 'image', 'mimes:jpeg,png,jpg,tiff', 'max:1024'], // 1MB Max
+            // Avatar validation: Max 1MB (1024kb), allowed web formats
+            'avatar'      => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:1024'], 
             'office_id'   => ['required', 'exists:offices,id'],
             'designation' => ['required', 'string', 'max:255'],
-            'suffix'      => ['nullable', 'string', 'max:255'],
-            'phone'       => ['nullable', 'string', 'max:255'],
+            'suffix'      => ['nullable', 'string', 'max:10'],
+            'phone'       => ['nullable', 'string', 'max:20'],
+        ];
+    }
+
+    /**
+     * Optional: Custom error messages if you want specific wording for the avatar
+     */
+    public function messages(): array
+    {
+        return [
+            'avatar.image' => 'The file must be an image.',
+            'avatar.max'   => 'The avatar may not be greater than 1MB.',
         ];
     }
 }

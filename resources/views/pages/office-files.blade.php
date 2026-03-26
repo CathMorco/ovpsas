@@ -49,14 +49,12 @@
                     {{-- LOOP THROUGH CATEGORIES (Folders) --}}
                     @foreach($groupedFiles as $category => $files)
 
-                        {{-- LOGIC: Determine Folder Display Name --}}
+                        {{-- Bulletproof Folder Name Logic --}}
                         @php
                             $folderName = $category;
-                            // Check if the current group is 'Others'
-                            if ($category === 'Others') {
-                                // Pull the custom name from the first file in this collection
-                                // Using data_get to safely handle both objects and arrays
-                                $folderName = data_get($files->first(), 'custom_category') ?: 'Others';
+                            if ($category === 'Others' && $files->isNotEmpty()) {
+                                $first = $files->first();
+                                $folderName = is_array($first) ? ($first['category'] ?? 'Others') : ($first->custom_category ?? 'Others');
                             }
                         @endphp
 
@@ -65,32 +63,48 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
                                 </svg>
-                                {{-- Displaying the Dynamic Folder Name --}}
                                 <h2 class="font-black text-[#800000] uppercase tracking-widest text-xs">{{ $folderName }}</h2>
                                 <span class="text-[10px] bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">{{ count($files) }} item(s)</span>
                             </div>
 
-                            {{-- LOOP THROUGH FILES INSIDE THIS CATEGORY --}}
+                            {{-- LOOP THROUGH FILES --}}
                             <ul class="divide-y divide-gray-100">
                                 @foreach($files as $file)
+                                    @php
+                                        $isArr = is_array($file);
+                                        $f_id = $isArr ? $file['id'] : $file->id;
+                                        $f_name = $isArr ? $file['name'] : $file->title;
+                                        $f_path = $isArr ? $file['path'] : $file->file_path;
+                                        $f_url = $isArr ? $file['url'] : route('file.view', $f_id);
+                                        $f_size = $isArr ? $file['size'] : ($f_path ? 'File Attachment' : 'Text Content');
+                                        $f_date = $isArr ? $file['date'] : $file->created_at->format('M d, Y');
+                                        $f_uploader = $isArr ? $file['uploader'] : ($file->user->name ?? 'Unknown');
+                                    @endphp
+
                                     <li class="p-5 hover:bg-gray-50 transition flex items-center justify-between group">
                                         <div class="flex items-center gap-5">
-                                            <div class="bg-gray-100 text-[#800000] p-3 rounded-lg group-hover:bg-[#800000] group-hover:text-white transition-all shadow-sm">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                </svg>
+                                            <div class="p-3 rounded-lg group-hover:text-white transition-all shadow-sm {{ $f_size === 'Text Content' ? 'bg-gray-100 text-gray-500 group-hover:bg-gray-500' : 'bg-gray-100 text-[#800000] group-hover:bg-[#800000]' }}">
+                                                @if($f_size === 'Text Content')
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                @else
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                                                @endif
                                             </div>
+                                            
                                             <div>
-                                                {{-- Accessing data using data_get for consistency --}}
-                                                <p class="font-bold text-gray-800 text-sm tracking-wide uppercase">{{ data_get($file, 'name') }}</p>
+                                                <p class="font-bold text-gray-800 text-sm tracking-wide uppercase">{{ $f_name }}</p>
                                                 <div class="flex items-center gap-3 mt-1">
-                                                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{{ data_get($file, 'size') }}</span>
+                                                    <span class="text-[9px] font-bold uppercase tracking-tighter {{ $f_size === 'Text Content' ? 'text-gray-400' : 'text-[#800000]' }}">{{ $f_size }}</span>
+                                                    <span class="text-gray-300">•</span>
+                                                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{{ $f_date }}</span>
+                                                    <span class="text-gray-300">•</span>
+                                                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">By: {{ $f_uploader }}</span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div class="flex items-center gap-2">
-                                            <a href="{{ data_get($file, 'url') }}" target="_blank" class="bg-gray-800 text-white px-3 py-1.5 rounded font-black text-[9px] hover:bg-black transition uppercase tracking-widest">
+                                            <a href="{{ $f_url }}" target="_blank" class="bg-gray-800 text-white px-3 py-1.5 rounded font-black text-[9px] hover:bg-black transition uppercase tracking-widest">
                                                 View
                                             </a>
 
@@ -98,7 +112,9 @@
                                                 <form action="{{ route('files.destroy') }}" method="POST" onsubmit="return confirm('Permanently delete this file?')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <input type="hidden" name="file_path" value="{{ data_get($file, 'path') }}">
+                                                    {{-- THIS IS THE FIX: Passing the ID so the controller knows what to delete in the Database --}}
+                                                    <input type="hidden" name="id" value="{{ $f_id }}">
+                                                    <input type="hidden" name="file_path" value="{{ $f_path }}">
                                                     <button type="submit" class="bg-red-600 text-white px-3 py-1.5 rounded font-black text-[9px] hover:bg-red-800 transition uppercase tracking-widest">
                                                         Delete
                                                     </button>

@@ -7,68 +7,56 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
-use App\Models\Office; // REQUIRED for the dropdown
-use Illuminate\Support\Facades\Storage; // REQUIRED for avatar handling
-use App\Models\User;
+use App\Models\Office;
 
 class SettingsController extends Controller
 {
     /**
-     * Display the user's profile settings form.
+     * Display the user's profile form.
      */
     public function edit(Request $request): View
     {
-        // We pass 'offices' so the dropdown in the view can populate correctly
         return view('profile.edit', [
             'user' => $request->user(),
-            'offices' => Office::all(), 
+            'offices' => Office::all(),
         ]);
     }
 
     /**
-     * Update the user's profile information (Text + Avatar).
+     * Update the user's profile information.
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
-        
-        // 1. Fill basic text fields (name, email, etc.)
-        $user->fill($request->validated());
 
-        // 2. Handle Manual Fields (if they aren't in the validated array)
-        if ($request->has('office_id')) $user->office_id = $request->office_id;
-        if ($request->has('designation')) $user->designation = $request->designation;
-        if ($request->has('phone')) $user->phone = $request->phone;
-        if ($request->has('suffix')) $user->suffix = $request->suffix;
+        // 1. Capture validated data (excluding avatar for manual handling)
+        $data = $request->validated();
 
-        // 3. Handle the Avatar Upload
+        // 2. Handle the Avatar File Upload
         if ($request->hasFile('avatar')) {
-            // Validate the image specifically
-            $request->validate([
-                'avatar' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
-            ]);
-
-            // Delete old avatar from storage if it exists (Clean up)
+            // Delete the old avatar from storage if it exists to save disk space
             if ($user->avatar) {
                 Storage::disk('public')->delete($user->avatar);
             }
 
-            // Store new avatar file
+            // Store the new file in 'storage/app/public/avatars'
+            // This returns the relative path (e.g., 'avatars/random_name.jpg')
             $path = $request->file('avatar')->store('avatars', 'public');
-            $user->avatar = $path;
+            
+            // Add the path to our data array
+            $data['avatar'] = $path;
         }
 
-        // 4. Handle Email Verification reset if email changed
-        if ($user->isDirty('email')) {
+        // 3. Reset email verification if email changed
+        if ($user->email !== $data['email']) {
             $user->email_verified_at = null;
         }
 
-        // 5. Save changes
-        $user->save();
+        // 4. Mass-update the user with the validated data
+        $user->update($data);
 
-        // Redirect back to the settings page with a success message AND fragment
-        // The '#update-password' fragment isn't needed here, but standardizing return is good.
         return Redirect::route('settings.edit')->with('status', 'profile-updated');
     }
 
@@ -83,13 +71,12 @@ class SettingsController extends Controller
 
         $user = $request->user();
 
-        // Cleanup: Delete the avatar file from storage before deleting the user
+        // Clean up: Remove avatar from storage before deleting the account
         if ($user->avatar) {
             Storage::disk('public')->delete($user->avatar);
         }
 
         Auth::logout();
-
         $user->delete();
 
         $request->session()->invalidate();
