@@ -62,14 +62,23 @@ class FileController extends Controller
      */
     public function storeAnnouncement(Request $request)
     {
-        // 1. Validate inputs
+        // 1. Validate inputs (UPDATED: Added Either/Or logic for Content & Attachment)
         $request->validate([
             'office' => 'required',
             'category' => 'required',
             'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'attachment' => 'nullable|file|max:10240',
-            'custom_category' => 'nullable|string|max:255', // Validate the custom field
+            'custom_category' => 'nullable|string|max:255', 
+            
+            // The "Either/Or" Rule: 
+            // Content is required ONLY IF attachment is empty.
+            'content' => 'required_without:attachment|nullable|string',
+            
+            // Attachment is required ONLY IF content is empty.
+            'attachment' => 'required_without:content|nullable|file|max:10240',
+        ], [
+            // Custom friendly error messages
+            'content.required_without' => 'Please provide a description or upload a file.',
+            'attachment.required_without' => 'Please upload a file or type a description.',
         ]);
 
         $filePath = null;
@@ -94,11 +103,11 @@ class FileController extends Controller
             'content' => $request->content,
             'office' => $offices,
             'category' => $categories,
-            'custom_category' => $request->custom_category, // Save the custom input here
+            'custom_category' => $request->custom_category, 
             'file_path' => $filePath,
         ]);
 
-        // 5. Log Activity
+        // 5. Log Activity (Only if a file was uploaded)
         if ($filePath && $fileName) {
             $officeString = implode(', ', $offices);
 

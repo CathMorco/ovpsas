@@ -1,9 +1,16 @@
 public function store(Request $request)
 {
-    // 1. This will stop the process if 'scheduled_date' is missing or empty
+    // 1. Enforce validation for ALL required fields based on your test cases
     $request->validate([
-        'title' => 'required|string|max:255',
-        'scheduled_date' => 'required|date',
+        'title'    => 'required|string|max:255',
+        'content  => 'required|string',
+        'office'   => 'required|array|min:1',
+        'category' => 'required|array|min:1',
+    ], [
+        // Custom error messages with the warning sign you requested
+        'content.required'  => '⚠️ The content field is required to publish.',
+        'office.required'   => '⚠️ Please select at least one target office.',
+        'category.required' => '⚠️ Please select at least one category.',
     ]);
 
     $announcement = new Announcement();
@@ -11,14 +18,16 @@ public function store(Request $request)
     $announcement->title = $request->title;
     $announcement->content = $request->content;
 
-    // 2. Explicitly set the date from the request
-    $announcement->scheduled_date = $request->scheduled_date;
+    // Handle arrays for office and category (Fallback removed since validation enforces it)
+    $announcement->office = $request->office;
+    $announcement->category = $request->category;
 
-    // 3. Handle arrays for office and category
-    $announcement->office = $request->office ?? ['General'];
-    $announcement->category = $request->category ?? ['Events'];
+    // Optional: Only save scheduled_date if it actually exists in your form
+    if ($request->has('scheduled_date')) {
+        $announcement->scheduled_date = $request->scheduled_date;
+    }
 
     $announcement->save();
 
-    return back()->with('success', 'Event successfully scheduled for ' . $request->scheduled_date);
+    return back()->with('success', 'Announcement successfully published!');
 }

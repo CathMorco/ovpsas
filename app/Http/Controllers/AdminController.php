@@ -2,95 +2,62 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\User;
-use App\Models\Office; 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AdminController extends Controller
 {
-    // 1. Show User List (Active Users)
-    public function index()
+    /**
+     * Display the Approvals Dashboard
+     */
+    public function approvals()
     {
-        $users = User::all();
-        $offices = Office::all();
-        return view('userslist', compact('users', 'offices'));
-    }
-
-    // 2. Show Approvals Page (Pending Users) + Search Role Logic
-    public function approvals(Request $request)
-    {
-        // A. Fetch Pending Users for the list
-        $pendingUsers = User::where('status', '!=', 'approved')
-                            ->orWhereNull('status')
-                            ->orderBy('created_at', 'desc')
+        // Fetch all users who are currently stuck in 'pending' status
+        $pendingUsers = User::where('status', 'pending')
+                            ->with('office') // Assuming you want to see their requested office
+                            ->orderBy('created_at', 'asc')
                             ->get();
 
-        // B. Search Logic for Role Management
-        $searchedUser = null;
-        if ($request->filled('search_email')) {
-            $searchedUser = User::where('email', $request->search_email)->first();
+        return view('admin.approvals', compact('pendingUsers'));
+    }
+
+    /**
+     * Handle the Approval and Role Assignment
+     */
+    public function approveUser(Request $request, $id)
+    {
+        $userToApprove = User::findOrFail($id);
+        $currentUser = Auth::user();
+
+        // Ensure a role was selected from the dropdown in the UI
+        $request->validate([
+            'role' => ['required', 'string', 'in:Admin,Office Staff,Viewer']
+        ]);
+
+        // CRITICAL SECURITY CHECK:
+        // If someone is trying to approve a user as an 'Admin', verify the person clicking approve is a Super Admin.
+        if ($request->role === 'Admin' && !$currentUser->isSuperAdmin()) {
+            return back()->with('error', 'Action Denied: Only Super Admins can promote users to the Admin role.');
         }
 
-        return view('approvals', compact('pendingUsers', 'searchedUser'));
-    }
-
-    // 3. Update Designation (For User List)
-    public function updateDesignation(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-        
-        $request->validate([
-            'designation' => 'required|string|max:255',
-            'office_id'   => 'required|exists:offices,id',
+        // If it passes, update the user to active and assign the chosen role
+        $userToApprove->update([
+            'status' => 'active',
+            'role' => $request->role
         ]);
 
-        $user->update([
-            'designation' => $request->designation,
-            'office_id'   => $request->office_id,
-        ]);
-
-        return redirect()->back()->with('success', 'User designation updated successfully.');
+        return back()->with('success', $userToApprove->name . ' has been approved as an ' . $request->role . '.');
     }
 
-    // 4. Approve User
-    public function approveUser($id)
-    {
-        $user = User::findOrFail($id);
-        $user->status = 'approved';
-        $user->save();
-
-        return redirect()->back()->with('success', 'User has been approved successfully.');
-    }
-
-    // 5. Decline/Delete User
+    /**
+     * Decline and Remove the User
+     */
     public function declineUser($id)
     {
         $user = User::findOrFail($id);
-        $user->delete(); 
+        $user->delete(); // Or update status to 'declined' if you want to keep the record
 
-        return redirect()->back()->with('success', 'User request has been declined and removed.');
-    }
-
-    // 6. Update User Role (New Feature)
-    public function updateRole(Request $request)
-    {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'role' => 'required|in:admin,staff,viewer', 
-        ]);
-
-        $user = User::findOrFail($request->user_id);
-        
-        // Safety: Prevent changing your own role
-        if ($user->id === auth()->id()) {
-            return redirect()->route('admin.approvals')->with('error', 'Security Alert: You cannot change your own role.');
-        }
-
-        $user->role = $request->role;
-        $user->save();
-
-        // Redirect back, keeping the search active so you see the result
-        return redirect()->route('admin.approvals', ['search_email' => $user->email])
-                         ->with('success', "Role updated to '{$request->role}' successfully.");
+        return back()->with('success', 'Registration request declined and removed.');
     }
 }

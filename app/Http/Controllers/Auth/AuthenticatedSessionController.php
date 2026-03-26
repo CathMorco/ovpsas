@@ -19,7 +19,7 @@ class AuthenticatedSessionController extends Controller
         return view('auth.login');
     }
 
-    /**
+/**
      * Handle an incoming authentication request.
      */
     public function store(LoginRequest $request): RedirectResponse
@@ -30,8 +30,8 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         // 2. CHECK ACCOUNT STATUS (Merged Feature)
-        // If the user is NOT approved, kick them out.
-        if (Auth::user()->status !== 'approved') {
+        // FIXED: Changed 'approved' to 'active' to match the database
+        if (Auth::user()->status !== 'active') {
             
             // Log them out immediately
             Auth::guard('web')->logout();
@@ -45,10 +45,9 @@ class AuthenticatedSessionController extends Controller
                 ->withErrors(['email' => 'Your account is pending approval from the Admin.']);
         }
 
-        // 3. If approved, proceed to dashboard
+        // 3. If active, proceed to dashboard
         return redirect()->intended(route('dashboard', absolute: false));
     }
-
     /**
      * Destroy an authenticated session.
      */

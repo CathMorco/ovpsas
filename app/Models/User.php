@@ -54,6 +54,12 @@ class User extends Authenticatable
      * Role-Based Access Control (RBAC) Helpers
      * We keep Capitalized versions to match your DatabaseSeeder.
      */
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'Super Admin';
+    }
+    
     public function isAdmin(): bool
     {
         return $this->role === 'Admin';

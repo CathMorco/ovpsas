@@ -17,10 +17,10 @@ class AdminMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         // 1. Check if user is logged in
-        // 2. Check if their role is strictly 'admin' (lowercase)
-        if (!Auth::check() || Auth::user()->role !== 'admin') {
+        // 2. Allow access if they are either an Admin OR a Super Admin
+        if (!Auth::check() || (!Auth::user()->isAdmin() && !Auth::user()->isSuperAdmin())) {
             
-            // If they are NOT an admin, show 403 Forbidden page
+            // If they are neither, show 403 Forbidden page
             abort(403, 'Access Denied: You do not have permission to view this page.');
         }
 
