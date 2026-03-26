@@ -2,33 +2,22 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Announcement extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
-        'user_id',
-        'title',
-        'content',
-        'scheduled_date',
-        'office',
-        'category',
+        'user_id', 'title', 'content', 'office', 'category', 
+        'scheduled_date', 'file_path', 'custom_category'
     ];
 
-    /**
-     * The attributes that should be cast.
-     */
     protected $casts = [
         'office' => 'array',
         'category' => 'array',
+        'scheduled_date' => 'date', // <--- CRITICAL: Treat as date object
     ];
 
     public function user()

@@ -10,17 +10,18 @@ return new class extends Migration
     {
         Schema::create('announcements', function (Blueprint $table) {
             $table->id();
-            // Connects the announcement to the user who posted it
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-
-            $table->string('office'); // Stores: ARCDO, OCPS, OSFA, etc.
+            
+            // Core fields
+            $table->string('office'); 
+            $table->string('category');
             $table->string('title');
-            $table->text('content');
-
-            // stores the file path (e.g., 'offices/ARCDO/document.pdf')
-            // nullable() because you said it's okay if they upload no file
+            
+            // The "Optional" fields - Ensure these are clean!
+            $table->text('content')->nullable(); 
             $table->string('file_path')->nullable();
-
+            $table->string('custom_category')->nullable();
+            
             $table->timestamps();
         });
     }

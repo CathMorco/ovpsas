@@ -3,61 +3,83 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Office;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class AdminController extends Controller
 {
     /**
-     * Display the Approvals Dashboard
+     * MASTER DIRECTORY / MANAGEMENT
+     * Shows all approved faculty and staff.
+     */
+    public function index()
+    {
+        $users = User::with('office')->where('status', 'Approved')->get();
+        $offices = Office::all();
+        return view('admin.users_management', compact('users', 'offices'));
+    }
+
+    /**
+     * APPROVALS QUEUE
+     * Shows users who registered but aren't admitted yet.
      */
     public function approvals()
     {
-        // Fetch all users who are currently stuck in 'pending' status
-        $pendingUsers = User::where('status', 'pending')
-                            ->with('office') // Assuming you want to see their requested office
-                            ->orderBy('created_at', 'asc')
-                            ->get();
-
+        // Grabs everyone with "Pending" status
+        $pendingUsers = User::with('office')->where('status', 'Pending')->get();
         return view('admin.approvals', compact('pendingUsers'));
     }
 
     /**
-     * Handle the Approval and Role Assignment
+     * ACTION: ADMIT FACULTY
      */
-    public function approveUser(Request $request, $id)
+    public function approveUser($id)
     {
-        $userToApprove = User::findOrFail($id);
-        $currentUser = Auth::user();
+        $user = User::findOrFail($id);
+        $user->update(['status' => 'Approved']);
 
-        // Ensure a role was selected from the dropdown in the UI
-        $request->validate([
-            'role' => ['required', 'string', 'in:Admin,Office Staff,Viewer']
-        ]);
-
-        // CRITICAL SECURITY CHECK:
-        // If someone is trying to approve a user as an 'Admin', verify the person clicking approve is a Super Admin.
-        if ($request->role === 'Admin' && !$currentUser->isSuperAdmin()) {
-            return back()->with('error', 'Action Denied: Only Super Admins can promote users to the Admin role.');
-        }
-
-        // If it passes, update the user to active and assign the chosen role
-        $userToApprove->update([
-            'status' => 'active',
-            'role' => $request->role
-        ]);
-
-        return back()->with('success', $userToApprove->name . ' has been approved as an ' . $request->role . '.');
+        return back()->with('success', "{$user->name} has been admitted to the system.");
     }
 
     /**
-     * Decline and Remove the User
+     * ACTION: REJECT REGISTRATION
      */
     public function declineUser($id)
     {
         $user = User::findOrFail($id);
-        $user->delete(); // Or update status to 'declined' if you want to keep the record
+        $user->delete(); // Removes the request from the DB
 
-        return back()->with('success', 'Registration request declined and removed.');
+        return back()->with('success', "Registration request removed.");
+    }
+
+    /**
+     * SUPER ADMIN: ROLE MANAGEMENT
+     */
+    public function updateRole(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'role' => 'required|in:Super Admin,Admin,Office Staff,Viewer',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+
+        if (auth()->id() === $user->id && $request->role !== 'Super Admin') {
+            return back()->with('error', 'You cannot demote yourself.');
+        }
+
+        $user->update(['role' => $request->role]);
+        return back()->with('success', "Role for {$user->name} updated to {$request->role}.");
+    }
+
+    public function updateDesignation(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $user->update([
+            'designation' => $request->designation,
+            'office_id' => $request->office_id
+        ]);
+
+        return back()->with('success', 'User details updated.');
     }
 }

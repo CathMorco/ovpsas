@@ -6,25 +6,19 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('announcements', function (Blueprint $table) {
-            // We add custom_category as nullable so existing records don't crash
-            // after('category') tells MySQL to place it right after the category column
-            $table->string('custom_category')->nullable()->after('category');
+            // This modifies the existing column to allow NULL values
+            $table->text('content')->nullable()->change();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('announcements', function (Blueprint $table) {
-            $table->dropColumn('custom_category');
+            // This reverts it back to NOT NULL if you roll back
+            $table->text('content')->nullable(false)->change();
         });
     }
 };

@@ -24,7 +24,7 @@
                     @csrf
                     <div class="max-w-5xl space-y-5">
 
-                        {{-- Row 1: Target Office & Category --}}
+                        {{-- Row 1: Target Office, Category, & Date Picker --}}
                         <div class="flex flex-col md:flex-row gap-6 items-start relative z-20">
 
                             {{-- 1. Target Office Dropdown --}}
@@ -58,7 +58,6 @@
                                         </div>
                                     </div>
                                 </div>
-                                {{-- Target Office Error Handling --}}
                                 @error('office')
                                     <span class="text-xs font-bold text-red-600 mt-1 italic">{{ $message }}</span>
                                 @enderror
@@ -90,7 +89,6 @@
                                             @endforeach
                                         </div>
 
-                                        {{-- Specify Other Category Input --}}
                                         <div x-show="selected.includes('Others')" class="p-3 bg-yellow-50 border-t border-gray-100" x-transition>
                                             <label class="text-[10px] font-bold text-[#800000] uppercase mb-1 block">Specify Other Category:</label>
                                             <input type="text" name="custom_category" x-model="customCategory" placeholder="Type here..." class="w-full text-sm border-gray-300 rounded-md focus:ring-[#800000] focus:border-[#800000] py-1.5">
@@ -101,8 +99,17 @@
                                         </div>
                                     </div>
                                 </div>
-                                {{-- Category Error Handling --}}
                                 @error('category')
+                                    <span class="text-xs font-bold text-red-600 mt-1 italic">{{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            {{-- 3. NEW: Target Date Picker --}}
+                            <div class="flex flex-col w-full md:w-48">
+                                <label class="font-bold text-[#800000] text-sm mb-1">Target Date (Optional):</label>
+                                <input type="date" name="scheduled_date" value="{{ old('scheduled_date') }}"
+                                       class="w-full bg-gray-100 border border-gray-200 rounded-md px-4 py-2.5 text-sm focus:ring-2 focus:ring-yellow-400 hover:bg-gray-200 transition cursor-pointer">
+                                @error('scheduled_date')
                                     <span class="text-xs font-bold text-red-600 mt-1 italic">{{ $message }}</span>
                                 @enderror
                             </div>
@@ -141,6 +148,9 @@
                                     <input type="file" name="attachment" class="hidden" @change="if($event.target.files[0]) fileName = $event.target.files[0].name;">
                                 </label>
                                 <template x-if="fileName"><span class="text-[10px] text-green-600 font-bold italic">Selected: <span x-text="fileName"></span></span></template>
+                                @error('attachment')
+                                    <span class="text-xs font-bold text-red-600 italic ml-2">{{ $message }}</span>
+                                @enderror
                             </div>
                             <button type="submit" class="bg-[#4D0000] text-white font-bold px-12 py-3 rounded-lg hover:bg-[#800000] transition shadow-md uppercase text-xs tracking-widest whitespace-nowrap">Publish</button>
                         </div>
@@ -232,6 +242,16 @@
                                     {{ is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office }}
                                 </span>
                                 <span class="truncate italic uppercase font-bold text-gray-800">{{ $announcement->title }}</span>
+
+                                {{-- DISPLAY THE DATE BADGE IF IT EXISTS --}}
+                                @if($announcement->scheduled_date)
+                                    <span class="text-[7px] text-blue-600 font-black italic uppercase flex items-center gap-1 mt-0.5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-2 w-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        Event Date: {{ $announcement->scheduled_date->format('M d, Y') }}
+                                    </span>
+                                @endif
 
                                 {{-- Display custom category if available --}}
                                 @if($announcement->custom_category)

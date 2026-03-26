@@ -12,6 +12,7 @@ use App\Models\Announcement;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\AdminMiddleware; // Required for Admin Protection
 use App\Http\Controllers\DirectoryController; 
+use App\Http\Middleware\SuperAdminMiddleware;
 
 Route::get('/directory', [DirectoryController::class, 'index'])->name('directory.index');
 
@@ -37,6 +38,24 @@ Route::get('/offices/{office}', [FileController::class, 'showOfficeFolder'])->na
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
+
+Route::middleware('auth')->group(function () {
+    
+    // 6. Admin Routes (General Admin Actions)
+    Route::middleware([AdminMiddleware::class])->group(function () {
+        Route::get('/userslist', [AdminController::class, 'index'])->name('users.list');
+        Route::get('/approvals', [AdminController::class, 'approvals'])->name('admin.approvals');
+        Route::post('/userslist/{id}/approve', [AdminController::class, 'approveUser'])->name('admin.users.approve');
+        Route::put('/userslist/{id}/update-designation', [AdminController::class, 'updateDesignation'])->name('admin.users.updateDesignation');
+        Route::delete('/userslist/{id}/decline', [AdminController::class, 'declineUser'])->name('admin.users.decline');
+
+        // 7. Super Admin Exclusive Routes (Role Management)
+        Route::middleware([SuperAdminMiddleware::class])->group(function () {
+            Route::put('/users/role/update', [AdminController::class, 'updateRole'])->name('admin.users.updateRole');
+            // Add other "God Mode" routes here (e.g., Audit Logs)
+        });
+    });
+});
 
 Route::middleware('auth')->group(function () {
     

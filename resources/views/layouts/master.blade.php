@@ -55,10 +55,12 @@
                 if ($minutesAgo < 5) return ['color' => 'bg-green-500', 'text' => 'Online'];
                 if ($minutesAgo < 60) return ['color' => 'bg-yellow-400', 'text' => 'Idle'];
                 
-                // For offline users, show when they were last seen
                 $timeString = \Carbon\Carbon::createFromTimestamp($lastActivity)->diffForHumans();
                 return ['color' => 'bg-gray-400', 'text' => 'Last seen ' . $timeString];
             };
+
+            // Calculate pending registrations for the badge
+            $pendingCount = \App\Models\User::where('status', 'Pending')->count();
         @endphp
     @endauth
 
@@ -84,6 +86,18 @@
                     <a href="{{ url('/') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('/') ? 'border-b-2 border-yellow-400 pb-1' : '' }}">Home</a>
                     @auth
                         <a href="{{ route('dashboard') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('dashboard') ? 'border-b-2 border-yellow-400 pb-1' : '' }}">Dashboard</a>
+                        
+                        {{-- ADMIN & SUPER ADMIN LINKS --}}
+                        @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
+                            <a href="{{ route('users.list') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('userslist*') ? 'border-b-2 border-yellow-400 pb-1' : '' }}">User Management</a>
+                            
+                            <a href="{{ route('admin.approvals') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm flex items-center gap-2 {{ Request::is('approvals*') ? 'border-b-2 border-yellow-400 pb-1' : '' }}">
+                                Approvals 
+                                @if($pendingCount > 0)
+                                    <span class="bg-yellow-400 text-[#800000] px-2 py-0.5 rounded-full text-[10px] font-black animate-bounce">{{ $pendingCount }}</span>
+                                @endif
+                            </a>
+                        @endif
                     @endauth
                     <a href="{{ url('/about') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('about') ? 'border-b-2 border-yellow-400 pb-1' : '' }}">About Us</a>
                 </div>
@@ -163,7 +177,6 @@
                 @auth <a href="{{ route('dashboard') }}" class="block px-3 py-2 text-base font-medium text-white hover:bg-red-800">Dashboard</a> @endauth
                 <a href="{{ url('/about') }}" class="block px-3 py-2 text-base font-medium text-white hover:bg-red-800">About Us</a>
                 
-                {{-- Mobile Search --}}
                 <form action="{{ route('search') }}" method="GET" class="px-3 py-2">
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Search..." class="w-full rounded-md text-gray-900 text-sm">
                 </form>
@@ -205,16 +218,15 @@
                                 
                                 {{-- Active Users Section --}}
                                 <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                                    <h3 class="font-bold text-gray-800 mb-4 flex items-center justify-between">
+                                    <h3 class="font-bold text-gray-800 mb-4 flex items-center justify-between uppercase text-[10px] tracking-widest">
                                         Recent Activity
-                                        <span class="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">{{ $activeUsers->count() }} Users</span>
+                                        <span class="text-[9px] bg-gray-200 text-gray-600 px-2 py-1 rounded-full">{{ $activeUsers->count() }} Users</span>
                                     </h3>
                                     @if($activeUsers->isEmpty())
-                                        <p class="text-sm text-gray-500 italic">No users have been active recently.</p>
+                                        <p class="text-sm text-gray-500 italic">No users active recently.</p>
                                     @else
                                         <ul class="space-y-4 text-sm">
                                             @foreach($activeUsers as $activeUser)
-                                                {{-- FIX: Notice the $ symbol below to call the variable --}}
                                                 @php $status = $getUserStatusDetails($activeUser); @endphp
                                                 <li class="flex justify-between items-center group">
                                                     <div class="flex items-center gap-3">
@@ -226,8 +238,8 @@
                                                             @endif
                                                         </div>
                                                         <div class="flex flex-col">
-                                                            <span class="text-gray-700 font-medium">{{ $activeUser->name }}</span>
-                                                            <span class="text-xs text-gray-500">{{ $status['text'] }}</span>
+                                                            <span class="text-gray-700 font-medium text-[11px] uppercase tracking-tighter">{{ $activeUser->name }}</span>
+                                                            <span class="text-[9px] text-gray-400 font-bold italic">{{ $status['text'] }}</span>
                                                         </div>
                                                     </div>
                                                     <div class="flex items-center gap-2" title="{{ $status['text'] }}">
@@ -239,22 +251,49 @@
                                     @endif
                                 </div>
 
-                                {{-- Quick Actions Section --}}
+                                {{-- Quick Actions Section (Role-Based) --}}
                                 <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                                    <h3 class="font-bold text-gray-800 mb-4">Quick Actions</h3>
+                                    <h3 class="font-bold text-gray-800 mb-4 uppercase text-[10px] tracking-widest">System Controls</h3>
                                     <div class="grid grid-cols-2 gap-3">
-                                        <button class="flex flex-col items-center justify-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-red-50 hover:border-red-200 hover:text-[#800000] transition-colors group">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 group-hover:text-[#800000] mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                            </svg>
-                                            <span class="text-xs font-medium text-gray-600 group-hover:text-[#800000]">Upload File</span>
-                                        </button>
-                                        <button class="flex flex-col items-center justify-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-red-50 hover:border-red-200 hover:text-[#800000] transition-colors group">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 group-hover:text-[#800000] mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                            </svg>
-                                            <span class="text-xs font-medium text-gray-600 group-hover:text-[#800000]">New Memo</span>
-                                        </button>
+                                        
+                                        {{-- Staff and Admins: Upload --}}
+                                        @if(!auth()->user()->isViewer())
+                                            <button class="flex flex-col items-center justify-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-red-50 hover:border-red-200 hover:text-[#800000] transition-colors group">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 group-hover:text-[#800000] mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                </svg>
+                                                <span class="text-[9px] font-black uppercase text-gray-600 group-hover:text-[#800000]">Upload File</span>
+                                            </button>
+                                        @endif
+
+                                        {{-- Super Admin Only: Manage Roles --}}
+                                        @if(auth()->user()->isSuperAdmin())
+                                            <a href="{{ route('users.list') }}" class="flex flex-col items-center justify-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-yellow-50 hover:border-yellow-200 hover:text-yellow-700 transition-colors group">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 group-hover:text-yellow-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                                </svg>
+                                                <span class="text-[9px] font-black uppercase text-gray-600 group-hover:text-yellow-700">Manage Roles</span>
+                                            </a>
+                                        @endif
+
+                                        {{-- Admin & Super Admin: Review Registrations --}}
+                                        @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
+                                            <a href="{{ route('admin.approvals') }}" class="flex flex-col items-center justify-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-red-50 hover:border-red-200 hover:text-[#800000] transition-colors group {{ auth()->user()->isSuperAdmin() ? 'col-span-2' : '' }}">
+                                                <div class="relative">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 group-hover:text-[#800000] mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    @if($pendingCount > 0)
+                                                        <span class="absolute -top-1 -right-1 flex h-2 w-2">
+                                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                                                            <span class="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                                <span class="text-[9px] font-black uppercase text-gray-600 group-hover:text-[#800000]">Approvals</span>
+                                            </a>
+                                        @endif
+
                                     </div>
                                 </div>
 
@@ -268,7 +307,6 @@
     @endauth
 
     <script>
-        {{-- Reload page on focus to keep session/online status fresh --}}
         document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') {
                 window.location.reload();

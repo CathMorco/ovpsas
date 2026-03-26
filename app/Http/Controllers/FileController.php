@@ -60,23 +60,21 @@ class FileController extends Controller
     /**
      * Handles the Announcements Board with Multi-Office & Custom Category Support
      */
+/**
+     * Handles the Announcements Board with Multi-Office & Date Support
+     */
     public function storeAnnouncement(Request $request)
     {
-        // 1. Validate inputs (UPDATED: Added Either/Or logic for Content & Attachment)
+        // 1. Validate inputs
         $request->validate([
             'office' => 'required',
             'category' => 'required',
             'title' => 'required|string|max:255',
-            'custom_category' => 'nullable|string|max:255', 
-            
-            // The "Either/Or" Rule: 
-            // Content is required ONLY IF attachment is empty.
             'content' => 'required_without:attachment|nullable|string',
-            
-            // Attachment is required ONLY IF content is empty.
             'attachment' => 'required_without:content|nullable|file|max:10240',
+            'custom_category' => 'nullable|string|max:255',
+            'scheduled_date' => 'nullable|date', // <--- Added validation
         ], [
-            // Custom friendly error messages
             'content.required_without' => 'Please provide a description or upload a file.',
             'attachment.required_without' => 'Please upload a file or type a description.',
         ]);
@@ -92,7 +90,7 @@ class FileController extends Controller
             $filePath = $file->storeAs('uploads', $storeName, 'public');
         }
 
-        // 3. Normalize Inputs to Arrays
+        // 3. Normalize Inputs
         $offices = is_array($request->office) ? $request->office : [$request->office];
         $categories = is_array($request->category) ? $request->category : [$request->category];
 
@@ -103,14 +101,14 @@ class FileController extends Controller
             'content' => $request->content,
             'office' => $offices,
             'category' => $categories,
-            'custom_category' => $request->custom_category, 
+            'custom_category' => $request->custom_category,
+            'scheduled_date' => $request->scheduled_date, // <--- Save to DB
             'file_path' => $filePath,
         ]);
 
-        // 5. Log Activity (Only if a file was uploaded)
+        // 5. Log Activity
         if ($filePath && $fileName) {
             $officeString = implode(', ', $offices);
-
             RecentActivity::create([
                 'user_id'     => Auth::id(),
                 'file_name'   => $fileName,
