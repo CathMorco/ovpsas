@@ -3,18 +3,15 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\User;
 use App\Models\Office;
+use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
-class DatabaseSeeder extends Seeder
+class ProductionSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
-    public function run(): void
+    public function run()
     {
-        // 1. CREATE OFFICES (Example)
+        // 1. Seed the 7 Core OVPSAS Offices
         $offices = [
             ['office_code' => 'ARCDO', 'office_name' => 'Alumni Relations and Career Development Office'],
             ['office_code' => 'OCPS', 'office_name' => 'Office of the Counseling and Psychological Services'],
@@ -29,16 +26,15 @@ class DatabaseSeeder extends Seeder
             Office::create($office);
         }
 
-        // 2. CREATE USERS
-        // System Administrator
+        // 2. Create the Super Admin Account
+        // Note: Make sure the column names match your User model exactly
         User::create([
-            'name' => 'System Admin',
-            'email' => 'admin@sasis.edu',
-            'password' => Hash::make('password123'),
-            'role' => 'Admin',
-            'office_id' => 4, // Assuming OSS or whichever ID fits your structure
+            'first_name' => 'System',
+            'last_name' => 'Administrator',
+            'email' => 'admin@sasis.pup.edu.ph',
+            'password_hash' => Hash::make('AdminSASIS2026!'), // The initial password IT will use
+            'role' => 'Super Admin', 
+            'office_id' => 4, // Assigning to OSS (or whichever ID makes sense as the master office)
         ]);
-        
-        // Add any other User::factory() code here...
     }
 }

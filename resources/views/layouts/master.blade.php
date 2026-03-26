@@ -40,19 +40,25 @@
 
     @auth
         @php
+            // Grabs users active in the last 24 hours (1440 mins)
             $activeUsers = \App\Models\User::whereHas('sessions', function($query) {
-                $query->where('last_activity', '>=', now()->subMinutes(60)->getTimestamp());
+                $query->where('last_activity', '>=', now()->subMinutes(1440)->getTimestamp());
             })->with(['sessions' => function($query) {
                 $query->orderBy('last_activity', 'desc');
             }])->get();
 
-            function getUserStatus($user) {
+            // FIX: Use an anonymous function to prevent redeclaration crashes
+            $getUserStatusDetails = function($user) {
                 $lastActivity = $user->sessions->first()->last_activity ?? 0;
                 $minutesAgo = (now()->getTimestamp() - $lastActivity) / 60;
-                if ($minutesAgo < 5) return 'online';
-                if ($minutesAgo < 60) return 'idle';
-                return 'offline';
-            }
+                
+                if ($minutesAgo < 5) return ['color' => 'bg-green-500', 'text' => 'Online'];
+                if ($minutesAgo < 60) return ['color' => 'bg-yellow-400', 'text' => 'Idle'];
+                
+                // For offline users, show when they were last seen
+                $timeString = \Carbon\Carbon::createFromTimestamp($lastActivity)->diffForHumans();
+                return ['color' => 'bg-gray-400', 'text' => 'Last seen ' . $timeString];
+            };
         @endphp
     @endauth
 
@@ -84,7 +90,7 @@
 
                 <div class="hidden sm:flex sm:items-center sm:ms-6 gap-4">
                     
-                    {{-- SEARCH BAR - Updated to name="search" to match Controller --}}
+                    {{-- SEARCH BAR --}}
                     <form action="{{ route('search') }}" method="GET" class="relative hidden md:block w-64">
                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search announcements, files..." 
                             class="w-full bg-white text-gray-800 rounded-full px-4 py-1.5 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400">
@@ -196,18 +202,20 @@
                             </div>
 
                             <div class="relative flex-1 px-4 py-6 sm:px-6 space-y-8 bg-gray-50">
+                                
                                 {{-- Active Users Section --}}
                                 <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                                     <h3 class="font-bold text-gray-800 mb-4 flex items-center justify-between">
-                                        Active Users
-                                        <span class="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">{{ $activeUsers->count() }} Online</span>
+                                        Recent Activity
+                                        <span class="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">{{ $activeUsers->count() }} Users</span>
                                     </h3>
                                     @if($activeUsers->isEmpty())
-                                        <p class="text-sm text-gray-500 italic">No other users are currently online.</p>
+                                        <p class="text-sm text-gray-500 italic">No users have been active recently.</p>
                                     @else
-                                        <ul class="space-y-3 text-sm">
+                                        <ul class="space-y-4 text-sm">
                                             @foreach($activeUsers as $activeUser)
-                                                @php $status = getUserStatus($activeUser); @endphp
+                                                {{-- FIX: Notice the $ symbol below to call the variable --}}
+                                                @php $status = $getUserStatusDetails($activeUser); @endphp
                                                 <li class="flex justify-between items-center group">
                                                     <div class="flex items-center gap-3">
                                                         <div class="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 group-hover:bg-[#800000] group-hover:text-white transition-all shadow-sm">
@@ -217,21 +225,39 @@
                                                                 {{ substr($activeUser->name, 0, 1) }}
                                                             @endif
                                                         </div>
-                                                        <span class="text-gray-700 font-medium">{{ $activeUser->name }}</span>
+                                                        <div class="flex flex-col">
+                                                            <span class="text-gray-700 font-medium">{{ $activeUser->name }}</span>
+                                                            <span class="text-xs text-gray-500">{{ $status['text'] }}</span>
+                                                        </div>
                                                     </div>
-                                                    <div class="flex items-center gap-2" title="{{ ucfirst($status) }}">
-                                                        @if($status === 'online')
-                                                            <span class="h-3 w-3 rounded-full bg-green-500 ring-2 ring-white shadow-sm animate-pulse"></span>
-                                                        @else
-                                                            <span class="h-3 w-3 rounded-full bg-yellow-400 ring-2 ring-white shadow-sm"></span>
-                                                        @endif
+                                                    <div class="flex items-center gap-2" title="{{ $status['text'] }}">
+                                                        <span class="h-3 w-3 rounded-full {{ $status['color'] }} ring-2 ring-white shadow-sm {{ $status['color'] === 'bg-green-500' ? 'animate-pulse' : '' }}"></span>
                                                     </div>
                                                 </li>
                                             @endforeach
                                         </ul>
                                     @endif
                                 </div>
-                                {{-- Additional sidebar content... --}}
+
+                                {{-- Quick Actions Section --}}
+                                <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                                    <h3 class="font-bold text-gray-800 mb-4">Quick Actions</h3>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <button class="flex flex-col items-center justify-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-red-50 hover:border-red-200 hover:text-[#800000] transition-colors group">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 group-hover:text-[#800000] mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                            </svg>
+                                            <span class="text-xs font-medium text-gray-600 group-hover:text-[#800000]">Upload File</span>
+                                        </button>
+                                        <button class="flex flex-col items-center justify-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-red-50 hover:border-red-200 hover:text-[#800000] transition-colors group">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 group-hover:text-[#800000] mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            <span class="text-xs font-medium text-gray-600 group-hover:text-[#800000]">New Memo</span>
+                                        </button>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
                     </div>
