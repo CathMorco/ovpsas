@@ -6,19 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // 'avatar' stores the file path (e.g., "avatars/user_1.jpg")
-            // We make it nullable so users don't HAVE to have a photo
-            $table->string('avatar')->nullable()->after('name');
+            $table->timestamp('last_seen_at')->nullable();
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('avatar');
+            //
         });
     }
 };

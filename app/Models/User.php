@@ -2,13 +2,12 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Office;
 use App\Models\Session;
-use App\Models\Announcement; // <--- Critical Import for "My Uploads"
+use App\Models\Announcement;
 
 class User extends Authenticatable
 {
@@ -20,15 +19,16 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
-        'suffix',      // From Code 1 (Profile)
+        'suffix',
         'email',
-        'phone',       // From Code 1 (Profile)
+        'phone',
         'password',
         'office_id',
         'designation', 
-        'role',        // RBAC
-        'avatar',      // From Code 1 (Profile Picture)
-        'status',      // From Code 2 (Login Approval System)
+        'role',
+        'avatar',
+        'status',
+        'last_seen_at', // Added for Quick Panel tracking
     ];
 
     /**
@@ -47,14 +47,13 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'last_seen_at' => 'datetime', // Ensures we can use Carbon methods
         ];
     }
 
     /**
      * Role-Based Access Control (RBAC) Helpers
-     * We keep Capitalized versions to match your DatabaseSeeder.
      */
-
     public function isSuperAdmin(): bool
     {
         return $this->role === 'Super Admin';
@@ -84,8 +83,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the sessions associated with the user.
-     * REQUIRED for the Active Users sidebar.
+     * Relationship with Sessions
      */
     public function sessions()
     {
@@ -93,8 +91,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the announcements (files) uploaded by this user.
-     * REQUIRED for the Profile Page "My Uploads" list.
+     * Relationship with Announcements (My Uploads)
      */
     public function announcements()
     {

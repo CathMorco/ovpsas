@@ -14,20 +14,18 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('suffix')->nullable(); // Added
             $table->string('email')->unique();
+            $table->string('phone')->nullable();  // Added
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             
-            // --- UPDATED FOR SASIS RBAC ---
-            // Stores "Admin", "Office Staff", or "Viewer" 
             $table->string('role')->default('Viewer'); 
-            
-            // Stores the ID of the 7 University units (e.g., ARCDO, OCPS) [cite: 8, 31]
             $table->integer('office_id')->nullable();  
-            
-            // Stores the specific job title (e.g., "IT Head", "Office Clerk") 
             $table->string('designation')->nullable(); 
-            // ------------------------------
+            
+            $table->string('avatar')->nullable(); // Added
+            $table->string('status')->default('Pending'); // Added (Crucial for Approvals)
 
             $table->rememberToken();
             $table->timestamps();

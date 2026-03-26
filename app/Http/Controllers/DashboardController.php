@@ -5,67 +5,53 @@ namespace App\Http\Controllers;
 use App\Models\Announcement;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
-use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // 1. FETCH ALL DATA
-        $allData = Announcement::with(['user', 'comments.user'])->latest()->get();
+        // 1. Fetch ALL announcements with relationships
+        $all = Announcement::with(['user', 'comments.user'])->latest()->get();
 
-        // 2. SEPARATION LOGIC
-        // calendarEvents: Anything that has a valid scheduled_date
-        $calendarEvents = $allData->filter(function ($item) {
-            return !empty($item->scheduled_date);
-        });
+        // 2. Partitioning for display
+        $upcomingEvents = $all->filter(fn($i) => 
+            !empty($i->scheduled_date) && 
+            Carbon::parse($i->scheduled_date)->isAfter(now()->startOfDay())
+        )->sortBy('scheduled_date');
 
-        // announcements: Everything else (Standard posts/announcements)
-        $announcements = $allData->filter(function ($item) {
-            return empty($item->scheduled_date);
-        });
+        // Feed shows EVERYTHING
+        $feedItems = $all; 
 
-        // 3. CHART DATA
-        // Note: Using 'flatten' because your categories/offices are stored as arrays
-        $categoryData = $announcements->pluck('category')->flatten()->groupBy(fn($item) => $item)
-            ->map(fn($group, $key) => (object) ['category' => $key, 'total' => $group->count()])
-            ->values();
+        // Repository shows only items with files
+        $repositoryFiles = $all->filter(fn($i) => !empty($i->file_path));
 
-        $officeData = $announcements->pluck('office')->flatten()->groupBy(fn($item) => $item)
-            ->map(fn($group, $key) => (object) ['office' => $key, 'total' => $group->count()])
-            ->values();
+        // 3. Chart Data Calculations
+        $categoryData = $all->pluck('category')->flatten()->filter()->groupBy(fn($c) => $c)
+            ->map(fn($g, $key) => (object)['category' => $key, 'total' => $g->count()])->values();
 
-        // 4. METRICS
-        $totalFiles = $announcements->count();
-        $activeOffices = $announcements->pluck('office')->flatten()->unique()->count();
+        $officeData = $all->pluck('office')->flatten()->filter()->groupBy(fn($o) => $o)
+            ->map(fn($g, $key) => (object)['office' => $key, 'total' => $g->count()])->values();
 
-        // Use created_at for monthly stats
-        $filesThisMonth = $announcements->filter(function($i) {
-            return optional($i->created_at)->isCurrentMonth();
-        })->count();
+        // Filtered data for the Bar Chart (Excludes 'General' labels for cleaner visual)
+        $filteredOfficeData = $officeData->reject(fn($o) => 
+            in_array(strtolower($o->office), ['general', 'all offices'])
+        );
 
-        $mostActiveOffice = $officeData->sortByDesc('total')->first()->office ?? 'None';
+        // 4. Final Stats
+        $totalActualFiles = $all->count();
+        $filesThisMonthCount = $all->filter(fn($i) => $i->created_at->isCurrentMonth())->count();
+        $mostActiveOffice = $filteredOfficeData->sortByDesc('total')->first()->office ?? 'N/A';
 
-        $activities = $allData->take(5)->map(function($item) {
-            return [
-                'date' => $item->created_at->format('M d, Y'),
-                // Display first office if it's an array
-                'office' => is_array($item->office) ? ($item->office[0] ?? 'N/A') : $item->office,
-                'action' => 'Published: ' . Str::limit($item->title, 20)
-            ];
-        });
-
-        // 5. RETURN EVERYTHING
-        return view('dashboard', compact(
-            'announcements',
-            'calendarEvents',
-            'categoryData',
-            'officeData',
-            'totalFiles',
-            'activeOffices',
-            'filesThisMonth',
-            'mostActiveOffice',
-            'activities'
-        ));
+        return view('dashboard', [
+            'upcomingEvents' => $upcomingEvents,
+            'feedItems' => $feedItems,
+            'repositoryFiles' => $repositoryFiles,
+            'totalActualFiles' => $totalActualFiles,
+            'monitoredOfficesCount' => $filteredOfficeData->count(),
+            'filesThisMonthCount' => $filesThisMonthCount,
+            'mostActiveOffice' => $mostActiveOffice,
+            'categoryData' => $categoryData,
+            'filteredOfficeData' => $filteredOfficeData // <--- Fixed variable name
+        ]);
     }
 }
