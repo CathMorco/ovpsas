@@ -11,7 +11,7 @@ class ProductionSeeder extends Seeder
 {
     public function run()
     {
-        // 1. Seed the 7 Core OVPSAS Offices
+        // 1. Seed the 7 Core OSAS Offices
         $offices = [
             ['office_code' => 'ARCDO', 'office_name' => 'Alumni Relations and Career Development Office'],
             ['office_code' => 'OCPS', 'office_name' => 'Office of the Counseling and Psychological Services'],

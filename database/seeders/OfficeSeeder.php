@@ -13,7 +13,7 @@ class OfficeSeeder extends Seeder
     public function run(): void
     {
         $offices = [
-            ['name' => 'Office of the Vice President for Student Affairs & Services', 'code' => 'OVPSAS'],
+            ['name' => 'Office of the Vice President for Student Affairs & Services', 'code' => 'OSAS'],
             ['name' => 'Alumni Relations and Career Development Office', 'code' => 'ARCDO'],
             ['name' => 'Office of the Counseling and Psychological Services', 'code' => 'OCPS'],
             ['name' => 'Office of Scholarship and Financial Assistance', 'code' => 'OSFA'],

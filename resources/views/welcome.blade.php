@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Home - OVPSAS')
+@section('title', 'Home - OSAS')
 
 @section('content')
     <div class="max-w-7xl mx-auto px-6 lg:px-8 space-y-10">

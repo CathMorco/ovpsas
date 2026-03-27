@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'About Us - OVPSAS')
+@section('title', 'About Us - OSAS')
 
 @section('content')
     <div class="py-12">
@@ -14,7 +14,7 @@
                         About the Office
                     </h1>
                     <p class="mb-6 text-gray-700 leading-relaxed text-justify">
-                        Welcome to the <strong>Office of the Vice President for Student Affairs and Services (OVPSAS)</strong>.<br>
+                        Welcome to the official website for the <strong>Office of the Vice President for Student Affairs and Services, "OSAS"</strong>.<br>
                         We are dedicated to providing a supportive and enriching environment for all students at the Polytechnic University of the Philippines.
                     </p>
                     <p class="text-gray-700 leading-relaxed text-justify">

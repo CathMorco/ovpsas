@@ -92,7 +92,7 @@ class FileController extends Controller
             $restrictedCats = ['Memorandums', 'Executive Orders'];
             foreach ($categories as $cat) {
                 if (in_array($cat, $restrictedCats)) {
-                    return back()->with('error', 'Security Alert: Only OVPSAS Admins can upload Memorandums and Executive Orders.');
+                    return back()->with('error', 'Security Alert: Only OSAS Admins can upload Memorandums and Executive Orders.');
                 }
             }
 

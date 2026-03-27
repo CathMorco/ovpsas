@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Dashboard - OVPSAS')
+@section('title', 'Dashboard - OSAS')
 
 @section('content')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

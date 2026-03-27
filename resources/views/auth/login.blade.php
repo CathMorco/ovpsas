@@ -97,7 +97,7 @@
     </main>
 
     <footer class="bg-gray-800 text-white py-4 text-center text-xs">
-        &copy; 2026 OVPSAS. Polytechnic University of the Philippines.
+        &copy; 2026 OSAS. Polytechnic University of the Philippines.
     </footer>
 </body>
 </html>

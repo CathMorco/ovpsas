@@ -90,7 +90,7 @@
     </main>
 
     <footer class="bg-gray-800 text-white py-4 text-center text-xs">
-        &copy; {{ date('Y') }} OVPSAS. Polytechnic University of the Philippines.
+        &copy; {{ date('Y') }} OSAS. Polytechnic University of the Philippines.
     </footer>
 </body>
 </html>

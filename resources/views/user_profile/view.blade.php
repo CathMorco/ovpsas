@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'My Profile - OVPSAS')
+@section('title', 'My Profile - OSAS')
 
 @section('content')
     {{-- Include custom CSS if you have it, otherwise standard Tailwind works --}}

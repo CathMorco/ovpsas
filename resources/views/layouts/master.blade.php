@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'OVPSAS')</title>
+    <title>@yield('title', 'OSAS')</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style> [x-cloak] { display: none !important; } </style>
 </head>
@@ -62,9 +62,11 @@
                     <div class="shrink-0 flex items-center">
                         <a href="{{ url('/') }}" class="flex items-center gap-3 group">
                             <img src="{{ asset('images/PUPLogo.png') }}" alt="Logo" class="block h-12 w-12 rounded-full border-2 border-white bg-white group-hover:scale-105 transition">
+                            
+                            {{-- UPDATED OSAS BRANDING HERE --}}
                             <div class="hidden lg:flex flex-col text-white leading-tight">
-                                <span class="font-bold text-lg tracking-wide">Student Affairs</span>
-                                <span class="text-xs opacity-90 font-light">Services and Information System</span>
+                                <span class="font-black text-2xl tracking-tight">OSAS</span>
+                                <span class="text-xs opacity-90 font-light tracking-widest">Office of Student Affairs and Services</span>
                             </div>
                         </a>
                     </div>
@@ -135,7 +137,7 @@
 
     <main class="flex-grow py-10">@yield('content')</main>
 
-    <footer class="bg-gray-800 text-white py-4 text-center text-xs">&copy; {{ date('Y') }} OVPSAS. Polytechnic University of the Philippines.</footer>
+    <footer class="bg-gray-800 text-white py-4 text-center text-xs">&copy; {{ date('Y') }} OSAS. Polytechnic University of the Philippines.</footer>
 
     {{-- Slide-over Sidebar (Quick Panel) --}}
     @auth
