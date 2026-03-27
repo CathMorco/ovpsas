@@ -40,8 +40,8 @@ class AdminController extends Controller
 
         $offices = Office::all();
 
-        // FIXED: Ensure the view name exactly matches your blade file
-        return view('admin.user_management', compact('users', 'offices'));
+        // THE FIX: Added the "s" to users_management to match your file exactly!
+        return view('admin.users_management', compact('users', 'offices'));
     }
 
     /**

@@ -13,13 +13,18 @@ class FileController extends Controller
 {
     /**
      * Display the files for a specific office.
-     * SECURED: Staff can only view their own assigned office.
+     * SECURED: Redirects guests to login. Staff can only view their assigned office.
      */
     public function showOfficeFolder($office)
     {
+        // 1. GUEST PROTECTION: Block access to folders if not logged in
+        if (!Auth::check()) {
+            return redirect()->route('login')->with('error', 'Please log in to access the Document Repositories.');
+        }
+
         $user = Auth::user();
 
-        // SECURITY: Prevent Staff from viewing other office folders
+        // 2. STAFF PROTECTION: Staff can only view their own assigned office folder
         if (!$user->isSuperAdmin() && !$user->isAdmin()) {
             if ($user->office && $user->office->code !== $office) {
                 abort(403, 'Unauthorized Access: You can only view your own office repository.');
@@ -66,11 +71,14 @@ class FileController extends Controller
 
     /**
      * Store Announcement Logic
-     * SECURED: Limits what categories and offices staff can post to.
      */
     public function storeAnnouncement(Request $request)
     {
         $user = Auth::user();
+        
+        // Safeguard: Ensure user is logged in
+        if (!$user) return redirect()->route('login');
+
         $isAdmin = $user->isSuperAdmin() || $user->isAdmin();
 
         $request->validate([
@@ -86,7 +94,7 @@ class FileController extends Controller
         $offices = is_array($request->office) ? $request->office : [$request->office];
         $categories = is_array($request->category) ? $request->category : [$request->category];
 
-        // SECURITY: Check Category & Office Restrictions for Staff
+        // 3. SECURITY: Check Category & Office Restrictions for Staff
         if (!$isAdmin) {
             // Block Staff from uploading Memos or EOs
             $restrictedCats = ['Memorandums', 'Executive Orders'];
@@ -140,9 +148,15 @@ class FileController extends Controller
 
     /**
      * VIEW FILE: Generates a virtual .txt file if no physical file exists.
+     * SECURED: Redirects guests to login.
      */
     public function viewFile(Announcement $announcement)
     {
+        // GUEST PROTECTION: Block viewing files if not logged in
+        if (!Auth::check()) {
+            return redirect()->route('login')->with('error', 'Please log in to view documents.');
+        }
+
         if (empty($announcement->file_path)) {
             $fileName = Str::slug($announcement->title) . ".txt";
             $officeNames = is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office;
@@ -187,9 +201,6 @@ class FileController extends Controller
         ]);
     }
 
-    /**
-     * Delete a file AND its record
-     */
     public function destroyFile(Request $request)
     {
         $id = $request->input('id');
