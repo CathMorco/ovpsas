@@ -11,11 +11,10 @@ class DirectoryController extends Controller
     public function index(Request $request)
     {
         // 1. Start Query & Load Office Data
-        $query = User::with('office')->where('status', 'approved');
+        // FIXED: Now looking for 'active' instead of 'approved'
+        $query = User::with('office')->where('status', 'active');
 
         // 2. HIDE SUPER ADMIN (Custom Logic)
-        // Assuming the first user (ID 1) is the Super Admin. 
-        // You can also hide by email: $query->where('email', '!=', 'admin@yourschool.edu');
         $query->where('id', '!=', 1);
 
         // 3. Search Logic (Name, Email, or Designation)
@@ -34,7 +33,6 @@ class DirectoryController extends Controller
         }
 
         // 5. Paginate (12 cards per page)
-        // Order by Name A-Z
         $users = $query->orderBy('name', 'asc')->paginate(12);
 
         // 6. Get Offices for Dropdown

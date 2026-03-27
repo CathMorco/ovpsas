@@ -13,9 +13,19 @@ class FileController extends Controller
 {
     /**
      * Display the files for a specific office.
+     * SECURED: Staff can only view their own assigned office.
      */
     public function showOfficeFolder($office)
     {
+        $user = Auth::user();
+
+        // SECURITY: Prevent Staff from viewing other office folders
+        if (!$user->isSuperAdmin() && !$user->isAdmin()) {
+            if ($user->office && $user->office->code !== $office) {
+                abort(403, 'Unauthorized Access: You can only view your own office repository.');
+            }
+        }
+
         $files = Announcement::where(function ($query) use ($office) {
             $query->whereJsonContains('office', $office)
                   ->orWhereJsonContains('office', 'All Offices')
@@ -43,10 +53,7 @@ class FileController extends Controller
                     'path'     => $file->file_path,
                     'url'      => route('file.view', $file->id),
                     'size'     => $file->file_path ? 'File Attachment' : 'Text Content',
-                    
-                    // FIXED: Force conversion to Manila time before formatting
                     'date'     => $file->created_at->timezone('Asia/Manila')->format('M d, Y'),
-                    
                     'uploader' => $file->user->name ?? 'Unknown'
                 ]);
             }
@@ -59,9 +66,13 @@ class FileController extends Controller
 
     /**
      * Store Announcement Logic
+     * SECURED: Limits what categories and offices staff can post to.
      */
     public function storeAnnouncement(Request $request)
     {
+        $user = Auth::user();
+        $isAdmin = $user->isSuperAdmin() || $user->isAdmin();
+
         $request->validate([
             'office' => 'required',
             'category' => 'required',
@@ -71,6 +82,28 @@ class FileController extends Controller
             'custom_category' => 'nullable|string|max:255',
             'scheduled_date' => 'nullable|date',
         ]);
+
+        $offices = is_array($request->office) ? $request->office : [$request->office];
+        $categories = is_array($request->category) ? $request->category : [$request->category];
+
+        // SECURITY: Check Category & Office Restrictions for Staff
+        if (!$isAdmin) {
+            // Block Staff from uploading Memos or EOs
+            $restrictedCats = ['Memorandums', 'Executive Orders'];
+            foreach ($categories as $cat) {
+                if (in_array($cat, $restrictedCats)) {
+                    return back()->with('error', 'Security Alert: Only OVPSAS Admins can upload Memorandums and Executive Orders.');
+                }
+            }
+
+            // Block Staff from posting to other offices
+            $userOfficeCode = $user->office ? $user->office->code : null;
+            foreach ($offices as $targetOffice) {
+                if ($targetOffice !== $userOfficeCode) {
+                    return back()->with('error', 'Security Alert: You can only post files to your assigned office (' . $userOfficeCode . ').');
+                }
+            }
+        }
 
         $filePath = null;
         $fileName = null;
@@ -82,11 +115,8 @@ class FileController extends Controller
             $filePath = $file->storeAs('uploads', $storeName, 'public');
         }
 
-        $offices = is_array($request->office) ? $request->office : [$request->office];
-        $categories = is_array($request->category) ? $request->category : [$request->category];
-
         Announcement::create([
-            'user_id'         => auth()->id(),
+            'user_id'         => $user->id,
             'title'           => $request->title,
             'content'         => $request->content,
             'office'          => $offices,
@@ -98,7 +128,7 @@ class FileController extends Controller
 
         if ($filePath && $fileName) {
             RecentActivity::create([
-                'user_id'     => Auth::id(),
+                'user_id'     => $user->id,
                 'file_name'   => $fileName,
                 'office_name' => implode(', ', $offices),
                 'action'      => 'Uploaded'
@@ -118,10 +148,7 @@ class FileController extends Controller
             $officeNames = is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office;
             
             $txtContent  = "TITLE: " . $announcement->title . "\r\n";
-            
-            // FIXED: Force conversion to Manila time in the virtual file as well
             $txtContent .= "DATE: " . $announcement->created_at->timezone('Asia/Manila')->format('F d, Y h:i A') . "\r\n";
-            
             $txtContent .= "OFFICE(S): " . $officeNames . "\r\n";
             $txtContent .= "--------------------------------------------------\r\n\r\n";
             $txtContent .= $announcement->content;

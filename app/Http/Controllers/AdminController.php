@@ -15,7 +15,8 @@ class AdminController extends Controller
     public function index(Request $request)
     {
         // Start the query and load the office relationship to prevent N+1 database issues
-        $query = User::with('office');
+        // FIXED: Only load users whose status is 'active'
+        $query = User::with('office')->where('status', 'active');
 
         // Apply Search Filter (by Name)
         if ($request->filled('search')) {
@@ -32,11 +33,6 @@ class AdminController extends Controller
             $query->where('role', $request->role);
         }
 
-        // Apply Status Filter
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
         // Fetch users, sorting those requesting admin access to the very top, then alphabetically
         $users = $query->orderByDesc('requesting_admin')
                        ->orderBy('name')
@@ -44,7 +40,8 @@ class AdminController extends Controller
 
         $offices = Office::all();
 
-        return view('admin.users_management', compact('users', 'offices'));
+        // FIXED: Ensure the view name exactly matches your blade file
+        return view('admin.user_management', compact('users', 'offices'));
     }
 
     /**
@@ -97,7 +94,10 @@ class AdminController extends Controller
     public function approveUser($id)
     {
         $user = User::findOrFail($id);
-        $user->update(['status' => 'Approved']);
+        
+        // FIXED: Set status to 'active' so the login system lets them in
+        $user->update(['status' => 'active']);
+        
         return back()->with('success', "{$user->name} admitted to system.");
     }
 
