@@ -133,16 +133,29 @@
                             <h4 class="font-black text-sm text-[#800000] uppercase mb-2 w-5/6">{{ $announcement->title }}</h4>
                             <p class="text-xs text-gray-600 italic leading-relaxed whitespace-pre-line">{{ $announcement->content }}</p>
                             
-                            {{-- FILE ATTACHMENT BOX --}}
-                            <div class="mt-4 p-3 bg-gray-100 rounded-lg flex items-center justify-between border-l-4 border-[#800000]">
-                                @if($announcement->file_path)
-                                    <span class="text-[10px] font-bold text-gray-500 truncate max-w-[200px]">{{ basename($announcement->file_path) }}</span>
-                                    <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="text-[9px] bg-[#800000] text-white px-3 py-1 rounded-full font-black uppercase shadow-sm hover:bg-red-800 transition">View File</a>
-                                @else
+                            {{-- MULTIPLE FILE ATTACHMENT DISPLAY --}}
+                            @php 
+                                $files = [];
+                                if($announcement->file_path) {
+                                    $decoded = json_decode($announcement->file_path, true);
+                                    $files = is_array($decoded) ? $decoded : [['path' => $announcement->file_path, 'original_name' => basename($announcement->file_path)]];
+                                }
+                            @endphp
+                            @if(!empty($files))
+                                <div class="mt-4 space-y-2">
+                                    @foreach($files as $file)
+                                        <div class="p-3 bg-gray-100 rounded-lg flex items-center justify-between border-l-4 border-[#800000]">
+                                            <span class="text-[10px] font-bold text-gray-500 truncate max-w-[200px]">{{ $file['original_name'] }}</span>
+                                            <a href="{{ route('file.view', ['announcement' => $announcement->id, 'path' => $file['path']]) }}" target="_blank" class="text-[9px] bg-[#800000] text-white px-3 py-1 rounded-full font-black uppercase shadow-sm hover:bg-red-800 transition">View File</a>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="mt-4 p-3 bg-gray-100 rounded-lg flex items-center justify-between border-l-4 border-[#800000]">
                                     <span class="text-[10px] font-bold text-gray-400 italic">No attachment. Reading from post content...</span>
                                     <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="text-[9px] bg-gray-600 text-white px-3 py-1 rounded-full font-black uppercase shadow-sm hover:bg-gray-700 transition">View Post.txt</a>
-                                @endif
-                            </div>
+                                </div>
+                            @endif
                         </div>
 
                         {{-- THE EDIT MODAL (Hidden by default) --}}
@@ -164,7 +177,8 @@
 
                                     <div>
                                         <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Content</label>
-                                        <textarea name="content" rows="4" class="w-full p-3 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#800000]" required>{{ $announcement->content }}</textarea>
+                                        {{-- REQUIRED REMOVED BELOW --}}
+                                        <textarea name="content" rows="4" class="w-full p-3 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#800000]">{{ $announcement->content }}</textarea>
                                     </div>
 
                                     <div class="grid grid-cols-2 gap-4">
@@ -200,7 +214,6 @@
                                                     @endforeach
                                                 </div>
                                                 
-                                                {{-- This input only shows when 'showCustom' is true (Others is clicked) --}}
                                                 <div class="mt-3" x-show="showCustom" x-cloak x-transition>
                                                     <input type="text" name="custom_category" value="{{ $announcement->custom_category }}" placeholder="Type new category name..." class="w-full p-2 border border-[#800000] rounded text-xs outline-none focus:ring-2 focus:ring-[#800000] bg-red-50">
                                                 </div>
@@ -214,15 +227,31 @@
                                             <input type="date" name="scheduled_date" value="{{ $announcement->scheduled_date ? \Carbon\Carbon::parse($announcement->scheduled_date)->format('Y-m-d') : '' }}" class="w-full p-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#800000]">
                                         </div>
                                         
-                                        {{-- FILE REPLACEMENT --}}
-                                        <div>
-                                            <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Replace Attachment (Optional)</label>
-                                            <input type="file" name="attachment" class="w-full p-1 border border-gray-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#800000] bg-white">
-                                            @if($announcement->file_path)
-                                                <p class="text-[9px] text-gray-400 mt-1 italic">Current: {{ basename($announcement->file_path) }}</p>
-                                            @endif
+                                        {{-- MULTIPLE FILE REPLACEMENT & DELETION --}}
+                                        <div x-data="{ addFileNames: '' }">
+                                            <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Add More Files</label>
+                                            <label class="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 w-full p-1.5 rounded text-xs font-bold transition flex items-center justify-center gap-2">
+                                                <span x-text="addFileNames ? 'Files Selected' : 'Choose Files to Add'">Choose Files to Add</span>
+                                                <input type="file" name="attachments[]" multiple class="hidden" @change="addFileNames = Array.from($event.target.files).map(f => f.name).join(', ');">
+                                            </label>
+                                            <template x-if="addFileNames"><p class="text-[9px] text-green-600 mt-1 italic truncate" x-text="addFileNames"></p></template>
                                         </div>
                                     </div>
+
+                                    {{-- CHECKLIST TO REMOVE EXISTING FILES --}}
+                                    @if(!empty($files))
+                                        <div class="bg-red-50 border border-red-100 p-3 rounded-lg">
+                                            <label class="block text-[10px] font-black text-red-800 uppercase tracking-widest mb-2">Remove Existing Attachments</label>
+                                            <div class="space-y-2">
+                                                @foreach($files as $file)
+                                                    <label class="flex items-center gap-2 text-xs text-gray-700 bg-white p-2 rounded shadow-sm cursor-pointer border border-red-50 hover:bg-red-100 transition">
+                                                        <input type="checkbox" name="remove_files[]" value="{{ $file['path'] }}" class="text-red-600 focus:ring-red-500 rounded">
+                                                        <span class="truncate">🗑️ Delete: {{ $file['original_name'] }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
                                     
                                     <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
                                         <button type="button" @click="openEdit = false" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-[10px] font-black uppercase hover:bg-gray-200 transition">Cancel</button>

@@ -27,6 +27,7 @@
                     <h2 class="text-white font-bold tracking-widest uppercase text-sm">Announcements Board</h2>
                 </div>
                 <div class="p-8">
+                    {{-- FIXED: Ensure enctype is here (it was, which is good!) --}}
                     <form action="{{ route('announcements.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="max-w-5xl space-y-5">
@@ -82,7 +83,6 @@
                                     <label class="font-bold text-[#800000] text-sm mb-1">Categories:</label>
                                     
                                     @php
-                                        // Merge & Filter categories based on user role securely inside blade
                                         $restrictedCats = ['Memorandums', 'Executive Orders'];
                                         $displayCategories = [];
                                         $isAdmin = auth()->user()->isSuperAdmin() || auth()->user()->isAdmin();
@@ -166,17 +166,25 @@
                                 @enderror
                             </div>
 
-                            {{-- File Upload & Submit --}}
-                            <div class="flex flex-col md:flex-row items-center justify-between gap-4 pl-0 md:pl-24 relative z-0" x-data="{ fileName: '' }">
+                            {{-- MULTIPLE FILE UPLOAD (FIXED) --}}
+                            <div class="flex flex-col md:flex-row items-center justify-between gap-4 pl-0 md:pl-24 relative z-0" x-data="{ fileNames: '' }">
                                 <div class="flex items-center gap-3 w-full">
-                                    <label class="cursor-pointer bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md text-xs font-bold transition flex items-center gap-2">
+                                    {{-- THE FIX: Added 'for="fileInput"' to label, added 'id="fileInput"' to input, changed name to 'attachment[]' --}}
+                                    <label for="fileInput" class="cursor-pointer bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md text-xs font-bold transition flex items-center gap-2">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                         </svg>
-                                        <span x-text="fileName ? fileName : 'Upload File'">Upload File</span>
-                                        <input type="file" name="attachment" class="hidden" @change="if($event.target.files[0]) fileName = $event.target.files[0].name;">
+                                        <span x-text="fileNames ? 'Files Selected' : 'Upload Files'">Upload Files</span>
                                     </label>
-                                    <template x-if="fileName"><span class="text-[10px] text-green-600 font-bold italic">Selected: <span x-text="fileName"></span></span></template>
+                                    <input type="file" id="fileInput" name="attachment[]" multiple class="hidden" @change="fileNames = Array.from($event.target.files).map(f => f.name).join(', ');">
+                                    
+                                    <template x-if="fileNames">
+                                        <span class="text-[10px] text-green-600 font-bold italic max-w-[300px] truncate" x-text="fileNames"></span>
+                                    </template>
+                                    
+                                    @error('attachment.*')
+                                        <span class="text-xs font-bold text-red-600 italic ml-2">{{ $message }}</span>
+                                    @enderror
                                     @error('attachment')
                                         <span class="text-xs font-bold text-red-600 italic ml-2">{{ $message }}</span>
                                     @enderror
@@ -198,7 +206,6 @@
             <div class="p-8">
                 <div class="grid grid-cols-4 md:grid-cols-7 gap-6">
                     @foreach(\App\Models\Office::all() as $office)
-                        {{-- 3. Quick Access Folder Restriction (Guests see all, Staff see theirs, Admins see all) --}}
                         @php
                             $showFolder = true;
                             if (auth()->check() && !auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {

@@ -8,6 +8,7 @@ use App\Models\RecentActivity;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class FileController extends Controller
 {
@@ -37,24 +38,47 @@ class FileController extends Controller
         foreach ($files as $file) {
             $categories = is_array($file->category) ? $file->category : [$file->category];
 
+            $attachments = [];
+            if ($file->file_path) {
+                $decoded = json_decode($file->file_path, true);
+                if (is_array($decoded)) {
+                    $attachments = $decoded;
+                } else {
+                    $attachments[] = ['path' => $file->file_path, 'original_name' => basename($file->file_path)];
+                }
+            }
+
             foreach ($categories as $cat) {
                 $folderName = $cat;
                 if ($cat === 'Others' && !empty($file->custom_category)) {
                     $folderName = $file->custom_category;
                 }
 
-                $displayName = $file->file_path ? $file->title : $file->title . " (Post Content).txt";
-
-                $displayCollection->push([
-                    'id'       => $file->id,
-                    'category' => $folderName, 
-                    'name'     => $displayName,
-                    'path'     => $file->file_path,
-                    'url'      => route('file.view', $file->id),
-                    'size'     => $file->file_path ? 'File Attachment' : 'Text Content',
-                    'date'     => $file->created_at->timezone('Asia/Manila')->format('M d, Y'),
-                    'uploader' => $file->user->name ?? 'Unknown'
-                ]);
+                if (!empty($attachments)) {
+                    foreach ($attachments as $attachment) {
+                        $displayCollection->push([
+                            'id'       => $file->id,
+                            'category' => $folderName, 
+                            'name'     => $attachment['original_name'] ?? basename($attachment['path']),
+                            'path'     => $attachment['path'],
+                            'url'      => route('file.view', ['announcement' => $file->id, 'path' => $attachment['path']]),
+                            'size'     => 'File Attachment',
+                            'date'     => $file->created_at->timezone('Asia/Manila')->format('M d, Y'),
+                            'uploader' => $file->user->name ?? 'Unknown'
+                        ]);
+                    }
+                } else {
+                    $displayCollection->push([
+                        'id'       => $file->id,
+                        'category' => $folderName, 
+                        'name'     => $file->title . " (Post Content).txt",
+                        'path'     => null,
+                        'url'      => route('file.view', $file->id),
+                        'size'     => 'Text Content',
+                        'date'     => $file->created_at->timezone('Asia/Manila')->format('M d, Y'),
+                        'uploader' => $file->user->name ?? 'Unknown'
+                    ]);
+                }
             }
         }
 
@@ -66,7 +90,6 @@ class FileController extends Controller
     public function storeAnnouncement(Request $request)
     {
         $user = Auth::user();
-        
         if (!$user) return redirect()->route('login');
 
         $isAdmin = $user->isSuperAdmin() || $user->isAdmin();
@@ -75,8 +98,8 @@ class FileController extends Controller
             'office' => 'required',
             'category' => 'required',
             'title' => 'required|string|max:255',
-            'content' => 'required_without:attachment|nullable|string',
-            'attachment' => 'required_without:content|nullable|file|max:10240',
+            'content' => 'required_without:attachments|nullable|string',
+            'attachments.*' => 'nullable|file|max:10240', // Corrected name to match frontend
             'custom_category' => 'nullable|string|max:255',
             'scheduled_date' => 'nullable|date',
         ]);
@@ -111,15 +134,31 @@ class FileController extends Controller
             }
         }
 
-        $filePath = null;
-        $fileName = null;
+        $uploadedPaths = [];
+        $originalNames = [];
 
-        if ($request->hasFile('attachment')) {
-            $file = $request->file('attachment');
-            $fileName = $file->getClientOriginalName();
-            $storeName = time() . '_' . $fileName;
-            $filePath = $file->storeAs('uploads', $storeName, 'public');
+        // Handle multiple files gracefully
+        if ($request->hasFile('attachments')) {
+            $files = $request->file('attachments');
+            
+            if (!is_array($files)) {
+                $files = [$files];
+            }
+
+            foreach ($files as $file) {
+                $name = $file->getClientOriginalName();
+                $storeName = time() . '_' . Str::random(5) . '_' . preg_replace('/[^a-zA-Z0-9_.-]/', '', $name);
+                $path = $file->storeAs('uploads', $storeName, 'public');
+                
+                $uploadedPaths[] = [
+                    'path' => $path,
+                    'original_name' => $name
+                ];
+                $originalNames[] = $name;
+            }
         }
+
+        $encodedPaths = !empty($uploadedPaths) ? json_encode($uploadedPaths) : null;
 
         foreach ($offices as $singleOffice) {
             foreach ($categories as $singleCategory) {
@@ -131,15 +170,15 @@ class FileController extends Controller
                     'category'        => [$singleCategory],
                     'custom_category' => $request->custom_category,
                     'scheduled_date'  => $request->scheduled_date,
-                    'file_path'       => $filePath,
+                    'file_path'       => $encodedPaths,
                 ]);
             }
         }
 
-        if ($filePath && $fileName) {
+        if (!empty($originalNames)) {
             RecentActivity::create([
                 'user_id'     => $user->id,
-                'file_name'   => $fileName,
+                'file_name'   => Str::limit(implode(', ', $originalNames), 200),
                 'office_name' => implode(', ', $offices),
                 'action'      => 'Uploaded'
             ]);
@@ -161,8 +200,8 @@ class FileController extends Controller
             'office' => 'required',
             'category' => 'required',
             'title' => 'required|string|max:255',
-            'content' => 'required_without:attachment|nullable|string',
-            'attachment' => 'nullable|file|max:10240',
+            'content' => 'required_without:attachments|nullable|string',
+            'attachments.*' => 'nullable|file|max:10240',
             'custom_category' => 'nullable|string|max:255',
             'scheduled_date' => 'nullable|date',
         ]);
@@ -176,6 +215,11 @@ class FileController extends Controller
         }
         $categories = array_values(array_unique($categories));
 
+        if (in_array('All Offices', $offices)) {
+            $allOfficeCodes = \App\Models\Office::pluck('code')->toArray();
+            $offices = !empty($allOfficeCodes) ? $allOfficeCodes : ['ARCDO', 'OCPS', 'OSFA', 'OSS', 'OUR', 'SDPO', 'UCCA'];
+        }
+
         if (!$isAdmin) {
             $restrictedCats = ['Memorandums', 'Executive Orders'];
             foreach ($categories as $cat) {
@@ -187,51 +231,114 @@ class FileController extends Controller
             $userOfficeCode = $user->office ? $user->office->code : null;
             foreach ($offices as $targetOffice) {
                 if ($targetOffice !== $userOfficeCode) {
-                    return back()->with('error', 'Security Alert: You can only post files to your assigned office (' . $userOfficeCode . ').');
+                    return back()->with('error', 'Security Alert: You can only post files to your assigned office.');
                 }
             }
         }
 
-        if ($request->hasFile('attachment')) {
-            if ($announcement->file_path && Storage::disk('public')->exists($announcement->file_path)) {
-                Storage::disk('public')->delete($announcement->file_path);
-            }
-            $file = $request->file('attachment');
-            $fileName = $file->getClientOriginalName();
-            $storeName = time() . '_' . $fileName;
-            $announcement->file_path = $file->storeAs('uploads', $storeName, 'public');
+        // ==============================================================
+        // FIND SIBLINGS (5-Second Relaxed Window to bypass MySQL truncation)
+        // ==============================================================
+        $originalCreatedAt = Carbon::parse($announcement->getOriginal('created_at'));
+        $siblings = Announcement::where('user_id', $announcement->user_id)
+            ->where('title', $announcement->getOriginal('title'))
+            ->whereBetween('created_at', [
+                $originalCreatedAt->copy()->subSeconds(5),
+                $originalCreatedAt->copy()->addSeconds(5)
+            ])
+            ->get();
+
+        // Decode existing files safely
+        $existingFiles = [];
+        if ($announcement->file_path) {
+            $decoded = json_decode($announcement->file_path, true);
+            $existingFiles = is_array($decoded) ? $decoded : [['path' => $announcement->file_path, 'original_name' => basename($announcement->file_path)]];
         }
 
+        // Handle specific file removals checked by the user
+        if ($request->has('remove_files')) {
+            foreach ($request->remove_files as $pathToRemove) {
+                if (Storage::disk('public')->exists($pathToRemove)) {
+                    Storage::disk('public')->delete($pathToRemove);
+                }
+                $existingFiles = array_filter($existingFiles, fn($file) => $file['path'] !== $pathToRemove);
+            }
+        }
+
+        // Append newly uploaded files
+        if ($request->hasFile('attachments')) {
+            $files = $request->file('attachments');
+            if (!is_array($files)) { $files = [$files]; }
+
+            foreach ($files as $file) {
+                $fileName = $file->getClientOriginalName();
+                $storeName = time() . '_' . Str::random(5) . '_' . preg_replace('/[^a-zA-Z0-9_.-]/', '', $fileName);
+                $path = $file->storeAs('uploads', $storeName, 'public');
+                $existingFiles[] = ['path' => $path, 'original_name' => $fileName];
+            }
+        }
+
+        $encodedPaths = !empty($existingFiles) ? json_encode(array_values($existingFiles)) : null;
+
+        // Generate updated decoupled combinations
+        $combinations = [];
+        foreach ($offices as $o) {
+            foreach ($categories as $c) {
+                $combinations[] = ['office' => $o, 'category' => $c];
+            }
+        }
+
+        // Update the active master record (preserves comments)
+        $firstCombo = array_shift($combinations);
         $announcement->title = $request->title;
         $announcement->content = $request->content;
-        $announcement->office = $offices;
-        $announcement->category = $categories;
+        $announcement->office = [$firstCombo['office']];
+        $announcement->category = [$firstCombo['category']];
         $announcement->custom_category = $request->custom_category;
         $announcement->scheduled_date = $request->scheduled_date;
-
+        $announcement->file_path = $encodedPaths;
         $announcement->save();
 
-        // LOG THE EDIT IN THE ACTIVITY FEED
+        // Purge old decoupled rows, preserving the active one
+        Announcement::where('id', '!=', $announcement->id)->whereIn('id', $siblings->pluck('id'))->delete();
+
+        // Spawn new decoupled rows
+        foreach ($combinations as $combo) {
+            Announcement::create([
+                'user_id'         => $user->id,
+                'title'           => $request->title,
+                'content'         => $request->content,
+                'office'          => [$combo['office']],
+                'category'        => [$combo['category']],
+                'custom_category' => $request->custom_category,
+                'scheduled_date'  => $request->scheduled_date,
+                'file_path'       => $encodedPaths,
+                'created_at'      => $announcement->getOriginal('created_at'),
+                'updated_at'      => now(),
+            ]);
+        }
+
         RecentActivity::create([
             'user_id'     => Auth::id(),
-            'file_name'   => $announcement->title,
+            'file_name'   => $request->title,
             'office_name' => implode(', ', $offices),
             'action'      => 'Edited'
         ]);
 
-        return back()->with('success', 'Announcement successfully updated!');
+        return back()->with('success', 'Announcement successfully updated globally!');
     }
 
-    public function viewFile(Announcement $announcement)
+    public function viewFile(Request $request, Announcement $announcement)
     {
         if (!Auth::check()) {
             return redirect()->route('login')->with('error', 'Please log in to view documents.');
         }
 
+        $requestedPath = $request->query('path');
+        $officeNames = is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office;
+
         if (empty($announcement->file_path)) {
             $fileName = Str::slug($announcement->title) . ".txt";
-            $officeNames = is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office;
-            
             $txtContent  = "TITLE: " . $announcement->title . "\r\n";
             $txtContent .= "DATE: " . $announcement->created_at->timezone('Asia/Manila')->format('F d, Y h:i A') . "\r\n";
             $txtContent .= "OFFICE(S): " . $officeNames . "\r\n";
@@ -246,16 +353,24 @@ class FileController extends Controller
             ]);
         }
 
-        $path = storage_path('app/public/' . $announcement->file_path);
+        // Support array fetching correctly
+        $files = json_decode($announcement->file_path, true);
+        $files = is_array($files) ? $files : [['path' => $announcement->file_path, 'original_name' => basename($announcement->file_path)]];
+        
+        $fileToView = null;
+        if ($requestedPath) {
+            $fileToView = collect($files)->firstWhere('path', $requestedPath);
+        } else {
+            $fileToView = $files[0] ?? null; 
+        }
 
-        if (!file_exists($path)) {
+        if (!$fileToView || !Storage::disk('public')->exists($fileToView['path'])) {
             abort(404, 'The requested file could not be found on the server.');
         }
 
-        $offices = is_array($announcement->office) ? $announcement->office : [$announcement->office];
-        $this->logActivity($announcement, basename($announcement->file_path), implode(', ', $offices));
+        $this->logActivity($announcement, $fileToView['original_name'] ?? basename($fileToView['path']), $officeNames);
 
-        return response()->file($path);
+        return response()->file(storage_path('app/public/' . $fileToView['path']));
     }
 
     private function logActivity(Announcement $announcement, $fileName, $officeString)
@@ -289,7 +404,7 @@ class FileController extends Controller
 
         if (in_array('All Offices', $offices)) {
             $allOfficeCodes = \App\Models\Office::pluck('code')->toArray();
-            $offices = !empty($allOfficeCodes) ? $allOfficeCodes : ['ARCDO', 'OSFA', 'OSS', 'SDP', 'SPS', 'UCCA', 'UDRMC'];
+            $offices = !empty($allOfficeCodes) ? $allOfficeCodes : ['ARCDO', 'OCPS', 'OSFA', 'OSS', 'OUR', 'SDPO', 'UCCA'];
         }
         if (count($categories) > 1 && $currentCategory && in_array($currentCategory, $categories)) {
             $announcement->update(['category' => array_values(array_diff($categories, [$currentCategory]))]);
@@ -300,14 +415,28 @@ class FileController extends Controller
             return back()->with('success', "Removed from $currentOffice. It remains safe elsewhere.");
         }
 
-        if ($announcement->file_path) {
+        if (!empty($announcement->file_path)) {
             $sharedCount = Announcement::where('file_path', $announcement->file_path)->where('id', '!=', $id)->count();
-            if ($sharedCount === 0 && Storage::disk('public')->exists($announcement->file_path)) {
-                Storage::disk('public')->delete($announcement->file_path);
+            
+            if ($sharedCount === 0) {
+                $pathsToDelete = [];
+                if (Str::startsWith($announcement->file_path, '[')) {
+                    $decoded = json_decode($announcement->file_path, true);
+                    if (is_array($decoded)) {
+                        foreach ($decoded as $f) { $pathsToDelete[] = $f['path'] ?? $f; }
+                    }
+                } else {
+                    $pathsToDelete[] = $announcement->file_path;
+                }
+
+                foreach ($pathsToDelete as $path) {
+                    if ($path && Storage::disk('public')->exists($path)) {
+                        Storage::disk('public')->delete($path);
+                    }
+                }
             }
         }
 
-        // LOG THE DELETION IN THE ACTIVITY FEED BEFORE DELETING IT
         RecentActivity::create([
             'user_id'     => Auth::id(),
             'file_name'   => $announcement->title,
