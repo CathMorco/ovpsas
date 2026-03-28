@@ -77,15 +77,24 @@
                                     @enderror
                                 </div>
 
-                                {{-- 2. Category Dropdown Restriction --}}
+                                {{-- 2. DYNAMIC Category Dropdown Restriction --}}
                                 <div class="flex flex-col flex-1 w-full" x-data="{ open: false, selected: [], customCategory: '' }">
                                     <label class="font-bold text-[#800000] text-sm mb-1">Categories:</label>
                                     
                                     @php
-                                        $categories = ['Reports', 'Minutes of Meeting', 'Activity Proposals', 'Letters', 'Financials', 'Forms', 'Policies', 'MOAs', 'Masterlists', 'Event Material', 'Others'];
-                                        // Only give Memos & EOs options to Admins
-                                        if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin()) {
-                                            array_unshift($categories, 'Memorandums', 'Executive Orders');
+                                        // Merge & Filter categories based on user role securely inside blade
+                                        $restrictedCats = ['Memorandums', 'Executive Orders'];
+                                        $displayCategories = [];
+                                        $isAdmin = auth()->user()->isSuperAdmin() || auth()->user()->isAdmin();
+
+                                        foreach($allAvailableCategories as $cat) {
+                                            if(in_array($cat, $restrictedCats)) {
+                                                if($isAdmin) {
+                                                    $displayCategories[] = $cat;
+                                                }
+                                            } else {
+                                                $displayCategories[] = $cat;
+                                            }
                                         }
                                     @endphp
 
@@ -100,17 +109,20 @@
                                         </div>
                                         <div x-show="open" x-cloak class="absolute top-full left-0 w-full bg-white border border-gray-200 rounded-md shadow-xl mt-1 z-50 flex flex-col overflow-hidden">
                                             <div class="max-h-60 overflow-y-auto p-2 space-y-1">
-                                                @foreach($categories as $cat)
+                                                @foreach($displayCategories as $cat)
                                                     <label class="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer transition">
                                                         <input type="checkbox" name="category[]" value="{{ $cat }}" x-model="selected" class="form-checkbox h-4 w-4 text-[#800000] rounded focus:ring-yellow-400">
                                                         <span class="text-sm text-gray-700">{{ $cat }}</span>
                                                     </label>
                                                 @endforeach
                                             </div>
+                                            
+                                            {{-- Dynamic Text Input for 'Others' --}}
                                             <div x-show="selected.includes('Others')" class="p-3 bg-yellow-50 border-t border-gray-100" x-transition>
                                                 <label class="text-[10px] font-bold text-[#800000] uppercase mb-1 block">Specify Other Category:</label>
                                                 <input type="text" name="custom_category" x-model="customCategory" placeholder="Type here..." class="w-full text-sm border-gray-300 rounded-md focus:ring-[#800000] focus:border-[#800000] py-1.5">
                                             </div>
+                                            
                                             <div class="bg-gray-50 border-t border-gray-100 p-2 flex justify-end">
                                                 <button type="button" @click="open = false" class="bg-[#800000] text-white text-xs font-bold px-4 py-1.5 rounded hover:bg-red-900 transition uppercase tracking-wider">OK</button>
                                             </div>

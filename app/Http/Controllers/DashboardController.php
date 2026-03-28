@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Announcement;
 use App\Models\Office;
+use App\Models\RecentActivity; // <-- ADDED
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -24,7 +25,6 @@ class DashboardController extends Controller
         // ==========================================
         $query = Announcement::with(['user', 'comments.user'])->latest();
 
-        // Staff only see data/posts assigned to their specific office OR "All Offices"
         if (!$isAdmin) {
             $query->where(function($q) use ($userOfficeCode) {
                 $q->whereJsonContains('office', $userOfficeCode)
@@ -34,19 +34,16 @@ class DashboardController extends Controller
             });
         }
 
-        // RAW DATA: This represents every single physical file/row in the database
         $rawAnnouncements = $query->get();
 
         // ==========================================
         // 2. DEDUPLICATION LOGIC (For the Feed Only)
         // ==========================================
         $groupedAnnouncements = $rawAnnouncements->groupBy(function($item) {
-            // Group by Title, Content, and creation minute to merge simultaneous uploads
             return $item->title . '|' . $item->content . '|' . $item->created_at->format('Y-m-d H:i');
         })->map(function($group) {
             $base = $group->first();
             
-            // Merge all targeted offices and categories into arrays for the UI badges
             $allOffices = $group->pluck('office')->flatten()->unique()->filter()->values()->toArray();
             $allCategories = $group->pluck('category')->flatten()->unique()->filter()->values()->toArray();
             
@@ -59,26 +56,22 @@ class DashboardController extends Controller
         // ==========================================
         // 3. DYNAMIC CATEGORY EXTRACTION
         // ==========================================
-        // Get all categories ever used in the entire system
         $allCategoriesInDb = Announcement::pluck('category')->flatten()->unique()->toArray();
         
-        // Default categories
         $defaultCategories = [
             'Memorandums', 'Executive Orders', 'Reports', 'Minutes of Meeting', 
             'Activity Proposals', 'Letters', 'Financials', 'Forms', 
             'Policies', 'MOAs', 'Masterlists', 'Event Material'
         ];
 
-        // Merge defaults with DB categories, remove 'Others', sort alphabetically
         $allAvailableCategories = collect(array_merge($defaultCategories, $allCategoriesInDb))
             ->reject(fn($c) => strtolower(trim($c)) === 'others')
             ->unique()->sort()->values()->toArray();
         
-        // Force 'Others' to always be the very last option
         $allAvailableCategories[] = 'Others';
 
         // ==========================================
-        // 4. UI DISPLAY VARIABLES (Uses Grouped Data)
+        // 4. UI DISPLAY VARIABLES & ACTIVITY FEED
         // ==========================================
         
         $upcomingEvents = $groupedAnnouncements->filter(function ($item) {
@@ -87,20 +80,19 @@ class DashboardController extends Controller
         })->sortBy('scheduled_date');
 
         $feedItems = $groupedAnnouncements; 
-
         $repositoryFiles = $groupedAnnouncements->filter(fn($item) => !empty($item->file_path));
+
+        // GET RECENT ACTIVITY FOR SIDEBAR
+        $recentActivities = RecentActivity::with('user')->latest()->take(15)->get(); // <-- ADDED
 
         // ==========================================
         // 5. CHART & ANALYTICS (Uses RAW Data)
         // ==========================================
-        
-        // Category Distribution (Counts actual files in folders)
         $categoryData = $rawAnnouncements->pluck('category')->flatten()->filter()
             ->groupBy(fn($cat) => $cat)
             ->map(fn($group, $key) => (object) ['category' => $key, 'total' => $group->count()])
             ->values();
 
-        // Office Distribution (Expands "All Offices" so the chart counts them properly)
         $allOfficeCodes = Office::pluck('code')->toArray();
         $defaultOffices = !empty($allOfficeCodes) ? $allOfficeCodes : ['ARCDO', 'OCPS', 'OSFA', 'OSS', 'OUR', 'SDPO', 'UCCA'];
         
@@ -132,8 +124,7 @@ class DashboardController extends Controller
         // ==========================================
         // 6. PRIMARY METRICS (Uses RAW Data)
         // ==========================================
-        
-        $totalActualFiles = $rawAnnouncements->count(); // Now counts the true total of folder files
+        $totalActualFiles = $rawAnnouncements->count(); 
         $monitoredOfficesCount = $filteredOfficeData->count();
 
         $filesThisMonthCount = $rawAnnouncements->filter(function($item) {
@@ -149,13 +140,14 @@ class DashboardController extends Controller
             'upcomingEvents'        => $upcomingEvents,
             'feedItems'             => $feedItems,
             'repositoryFiles'       => $repositoryFiles,
+            'recentActivities'      => $recentActivities, // <-- ADDED
             'totalActualFiles'      => $totalActualFiles,
             'monitoredOfficesCount' => $monitoredOfficesCount,
             'filesThisMonthCount'   => $filesThisMonthCount,
             'mostActiveOffice'      => $mostActiveOffice,
             'categoryData'          => $categoryData,
             'filteredOfficeData'    => $filteredOfficeData,
-            'allAvailableCategories'=> $allAvailableCategories // Pass to blade view
+            'allAvailableCategories'=> $allAvailableCategories
         ]);
     }
 }

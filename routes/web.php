@@ -18,7 +18,24 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     $announcements = Announcement::latest()->take(6)->get();
-    return view('welcome', compact('announcements'));
+
+    // --- DYNAMIC CATEGORY EXTRACTION FOR HOME PAGE ---
+    $allCategoriesInDb = Announcement::pluck('category')->flatten()->unique()->toArray();
+    
+    $defaultCategories = [
+        'Memorandums', 'Executive Orders', 'Reports', 'Minutes of Meeting', 
+        'Activity Proposals', 'Letters', 'Financials', 'Forms', 
+        'Policies', 'MOAs', 'Masterlists', 'Event Material'
+    ];
+
+    $allAvailableCategories = collect(array_merge($defaultCategories, $allCategoriesInDb))
+        ->reject(fn($c) => strtolower(trim($c)) === 'others')
+        ->unique()->sort()->values()->toArray();
+    
+    $allAvailableCategories[] = 'Others';
+    // -------------------------------------------------
+
+    return view('welcome', compact('announcements', 'allAvailableCategories'));
 });
 
 Route::get('/about', function () {
@@ -55,9 +72,9 @@ Route::middleware('auth')->group(function () {
     // 4. Announcement & Comments
     Route::post('/announcements/store', [FileController::class, 'storeAnnouncement'])->name('announcements.store');
     
-    // --- NEW: Route for updating announcements ---
+    // --- Route for updating announcements ---
     Route::put('/announcements/{announcement}', [FileController::class, 'updateAnnouncement'])->name('announcements.update');
-    // ---------------------------------------------
+    // ----------------------------------------
 
     Route::post('/announcements/{announcement}/comments', [CommentController::class, 'store'])->name('comments.store');
 

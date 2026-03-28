@@ -11,10 +11,6 @@ use Illuminate\Support\Str;
 
 class FileController extends Controller
 {
-    /**
-     * Display the files for a specific office.
-     * SECURED: Redirects guests to login. Staff can only view their assigned office.
-     */
     public function showOfficeFolder($office)
     {
         if (!Auth::check()) {
@@ -67,9 +63,6 @@ class FileController extends Controller
         return view('pages.office-files', compact('office', 'groupedFiles'));
     }
 
-    /**
-     * Store Announcement Logic (DECOUPLED ARCHITECTURE)
-     */
     public function storeAnnouncement(Request $request)
     {
         $user = Auth::user();
@@ -91,15 +84,12 @@ class FileController extends Controller
         $offices = is_array($request->office) ? $request->office : [$request->office];
         $categories = is_array($request->category) ? $request->category : [$request->category];
 
-        // --- DYNAMIC CATEGORY INJECTION ---
         if (in_array('Others', $categories) && !empty($request->custom_category)) {
-            $categories = array_diff($categories, ['Others']); // Remove 'Others'
-            $categories[] = trim($request->custom_category); // Add custom word
+            $categories = array_diff($categories, ['Others']);
+            $categories[] = trim($request->custom_category);
         }
         $categories = array_values(array_unique($categories));
-        // ----------------------------------
 
-        // EXPAND "ALL OFFICES" INTO INDIVIDUAL OFFICES FOR TOTAL ISOLATION
         if (in_array('All Offices', $offices)) {
             $allOfficeCodes = \App\Models\Office::pluck('code')->toArray();
             $offices = !empty($allOfficeCodes) ? $allOfficeCodes : ['ARCDO', 'OCPS', 'OSFA', 'OSS', 'OUR', 'SDPO', 'UCCA'];
@@ -131,7 +121,6 @@ class FileController extends Controller
             $filePath = $file->storeAs('uploads', $storeName, 'public');
         }
 
-        // DECOUPLED CREATION: Create a completely separate database row for EVERY office and category!
         foreach ($offices as $singleOffice) {
             foreach ($categories as $singleCategory) {
                 Announcement::create([
@@ -159,9 +148,6 @@ class FileController extends Controller
         return back()->with('success', 'Published successfully! Files are now safely isolated.');
     }
 
-    /**
-     * Update Announcement Logic
-     */
     public function updateAnnouncement(Request $request, Announcement $announcement)
     {
         $user = Auth::user();
@@ -176,7 +162,7 @@ class FileController extends Controller
             'category' => 'required',
             'title' => 'required|string|max:255',
             'content' => 'required_without:attachment|nullable|string',
-            'attachment' => 'nullable|file|max:10240', // Validate new file if provided
+            'attachment' => 'nullable|file|max:10240',
             'custom_category' => 'nullable|string|max:255',
             'scheduled_date' => 'nullable|date',
         ]);
@@ -184,13 +170,11 @@ class FileController extends Controller
         $offices = is_array($request->office) ? $request->office : [$request->office];
         $categories = is_array($request->category) ? $request->category : [$request->category];
 
-        // --- DYNAMIC CATEGORY INJECTION ---
         if (in_array('Others', $categories) && !empty($request->custom_category)) {
-            $categories = array_diff($categories, ['Others']); // Remove 'Others'
-            $categories[] = trim($request->custom_category); // Add custom word
+            $categories = array_diff($categories, ['Others']);
+            $categories[] = trim($request->custom_category);
         }
         $categories = array_values(array_unique($categories));
-        // ----------------------------------
 
         if (!$isAdmin) {
             $restrictedCats = ['Memorandums', 'Executive Orders'];
@@ -208,14 +192,10 @@ class FileController extends Controller
             }
         }
 
-        // Handle File Replacement
         if ($request->hasFile('attachment')) {
-            // Delete old file if it exists to save space
             if ($announcement->file_path && Storage::disk('public')->exists($announcement->file_path)) {
                 Storage::disk('public')->delete($announcement->file_path);
             }
-
-            // Store new file
             $file = $request->file('attachment');
             $fileName = $file->getClientOriginalName();
             $storeName = time() . '_' . $fileName;
@@ -231,12 +211,17 @@ class FileController extends Controller
 
         $announcement->save();
 
+        // LOG THE EDIT IN THE ACTIVITY FEED
+        RecentActivity::create([
+            'user_id'     => Auth::id(),
+            'file_name'   => $announcement->title,
+            'office_name' => implode(', ', $offices),
+            'action'      => 'Edited'
+        ]);
+
         return back()->with('success', 'Announcement successfully updated!');
     }
 
-    /**
-     * VIEW FILE: Generates a virtual .txt file if no physical file exists.
-     */
     public function viewFile(Announcement $announcement)
     {
         if (!Auth::check()) {
@@ -287,9 +272,6 @@ class FileController extends Controller
         ]);
     }
 
-    /**
-     * DESTROY FILE: True Decoupled Deletion Logic
-     */
     public function destroyFile(Request $request)
     {
         $id = $request->input('id');
@@ -305,7 +287,6 @@ class FileController extends Controller
         $offices = is_array($announcement->office) ? $announcement->office : json_decode($announcement->office, true) ?? [];
         $categories = is_array($announcement->category) ? $announcement->category : json_decode($announcement->category, true) ?? [];
 
-        // FALLBACK: If the file was uploaded BEFORE we changed the architecture, this safely unlinks it instead of destroying it globally.
         if (in_array('All Offices', $offices)) {
             $allOfficeCodes = \App\Models\Office::pluck('code')->toArray();
             $offices = !empty($allOfficeCodes) ? $allOfficeCodes : ['ARCDO', 'OSFA', 'OSS', 'SDP', 'SPS', 'UCCA', 'UDRMC'];
@@ -319,18 +300,21 @@ class FileController extends Controller
             return back()->with('success', "Removed from $currentOffice. It remains safe elsewhere.");
         }
 
-        // DECOUPLED DELETE: Because uploads are now separate records, we simply delete THIS specific record.
-        // We check if any OTHER isolated records are still using the physical file.
         if ($announcement->file_path) {
             $sharedCount = Announcement::where('file_path', $announcement->file_path)->where('id', '!=', $id)->count();
-            
-            // Only delete the physical .pdf from the server if absolutely no other records are using it!
             if ($sharedCount === 0 && Storage::disk('public')->exists($announcement->file_path)) {
                 Storage::disk('public')->delete($announcement->file_path);
             }
         }
 
-        // Delete the single, isolated database record
+        // LOG THE DELETION IN THE ACTIVITY FEED BEFORE DELETING IT
+        RecentActivity::create([
+            'user_id'     => Auth::id(),
+            'file_name'   => $announcement->title,
+            'office_name' => is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office,
+            'action'      => 'Deleted'
+        ]);
+
         $announcement->delete();
 
         return back()->with('success', 'File deleted successfully from this specific folder.');

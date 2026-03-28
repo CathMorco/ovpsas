@@ -50,7 +50,7 @@
                 return ['color' => 'bg-gray-400', 'text' => 'Active ' . $user->last_seen_at->diffForHumans()];
             };
 
-            // 3. Count pending registrations (Matches status field in DB)
+            // 3. Count pending registrations
             $pendingCount = \App\Models\User::where('status', 'pending')->count();
         @endphp
     @endauth
@@ -62,8 +62,6 @@
                     <div class="shrink-0 flex items-center">
                         <a href="{{ url('/') }}" class="flex items-center gap-3 group">
                             <img src="{{ asset('images/PUPLogo.png') }}" alt="Logo" class="block h-12 w-12 rounded-full border-2 border-white bg-white group-hover:scale-105 transition">
-                            
-                            {{-- UPDATED OSAS BRANDING HERE --}}
                             <div class="hidden lg:flex flex-col text-white leading-tight">
                                 <span class="font-black text-2xl tracking-tight">OSAS</span>
                                 <span class="text-xs opacity-90 font-light tracking-widest">Office of Student Affairs and Services</span>
@@ -72,21 +70,17 @@
                     </div>
                 </div>
 
-                {{-- Desktop Nav Links --}}
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex items-center">
                     <a href="{{ url('/') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('/') ? 'border-b-2 border-yellow-400' : '' }}">Home</a>
                     @auth
                         <a href="{{ route('dashboard') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('dashboard') ? 'border-b-2 border-yellow-400' : '' }}">Dashboard</a>
                         
-                        {{-- STAFF DIRECTORY: Accessible by everyone --}}
                         <a href="{{ route('directory.index') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('directory*') ? 'border-b-2 border-yellow-400' : '' }}">Staff Directory</a>
 
-                        {{-- USER MANAGEMENT: ONLY for Super Admins --}}
                         @if(auth()->user()->isSuperAdmin())
                             <a href="{{ route('users.list') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm {{ Request::is('userslist*') ? 'border-b-2 border-yellow-400' : '' }}">Management</a>
                         @endif
 
-                        {{-- APPROVALS: For both Admins and Super Admins --}}
                         @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
                             <a href="{{ route('admin.approvals') }}" class="text-white font-bold hover:text-yellow-300 transition text-sm flex items-center gap-2 {{ Request::is('approvals*') ? 'border-b-2 border-yellow-400' : '' }}">
                                 Approvals 
@@ -177,9 +171,9 @@
                                     </div>
                                 </div>
 
-                                {{-- Recent Activity --}}
+                                {{-- Active Users --}}
                                 <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                                    <h3 class="text-[10px] font-black uppercase text-gray-800 tracking-widest mb-4 flex justify-between">Recent Activity <span>{{ $activeUsers->count() }} Users</span></h3>
+                                    <h3 class="text-[10px] font-black uppercase text-gray-800 tracking-widest mb-4 flex justify-between">Active Users <span>{{ $activeUsers->count() }} Users</span></h3>
                                     <ul class="space-y-4">
                                         @foreach($activeUsers as $user)
                                             @php $status = $getUserStatusDetails($user); @endphp
@@ -198,6 +192,49 @@
                                         @endforeach
                                     </ul>
                                 </div>
+
+                                {{-- SYSTEM ACTIVITY LOG BLOCK --}}
+                                <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h3 class="text-[10px] font-black text-gray-800 uppercase tracking-widest">System Log</h3>
+                                        <span class="text-[9px] font-bold text-gray-400 uppercase">Live</span>
+                                    </div>
+                                    
+                                    <div class="space-y-4 max-h-[300px] overflow-y-auto">
+                                        {{-- Directly fetch the latest 10 activities so it works on any page --}}
+                                        @php
+                                            $globalActivities = \App\Models\RecentActivity::with('user')->latest()->take(10)->get();
+                                        @endphp
+                                        
+                                        @forelse($globalActivities as $activity)
+                                            <div class="flex items-start gap-3 border-b border-gray-50 pb-3 last:border-0">
+                                                <div class="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center shrink-0 font-black text-[#800000] text-[9px] uppercase border border-gray-200">
+                                                    {{ substr($activity->user->name ?? '?', 0, 1) }}
+                                                </div>
+                                                <div>
+                                                    <p class="text-[10px] text-gray-800 leading-tight">
+                                                        <span class="font-black uppercase">{{ $activity->user->name ?? 'User' }}</span> 
+                                                        
+                                                        @if($activity->action === 'Uploaded') <span class="text-blue-600 font-bold">uploaded</span>
+                                                        @elseif($activity->action === 'Deleted') <span class="text-red-600 font-bold">deleted</span>
+                                                        @elseif($activity->action === 'Edited') <span class="text-yellow-600 font-bold">edited</span>
+                                                        @elseif($activity->action === 'Commented') <span class="text-green-600 font-bold">commented on</span>
+                                                        @else <span class="text-gray-500 font-bold">{{ strtolower($activity->action) }}</span>
+                                                        @endif 
+                                                        
+                                                        <span class="italic text-gray-600">"{{ Str::limit($activity->file_name, 22) }}"</span>
+                                                    </p>
+                                                    <p class="text-[8px] text-gray-400 font-bold uppercase mt-1 tracking-tighter">
+                                                        {{ $activity->created_at->diffForHumans() }} • {{ Str::limit($activity->office_name, 15) }}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        @empty
+                                            <p class="text-center text-gray-400 text-[10px] uppercase font-bold tracking-widest italic py-4">No recent activity.</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
                     </div>
