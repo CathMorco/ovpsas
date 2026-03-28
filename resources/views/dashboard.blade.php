@@ -8,82 +8,61 @@
 
     <div class="max-w-7xl mx-auto px-6 lg:px-8 space-y-8 py-8">
 
-        {{-- PROMOTION REQUEST CTA --}}
-        @if(auth()->user()->isStaff())
-            @if(!auth()->user()->requesting_admin)
-                <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-xl shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+        {{-- 1. ADMIN-ONLY ANALYTICS BLOCK --}}
+        @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
+            
+            {{-- TOP STAT CARDS --}}
+            <div class="bg-white p-8 rounded-xl shadow-md border-t-4 border-[#800000]">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
                     <div>
-                        <h3 class="text-blue-800 font-bold uppercase text-xs tracking-widest">Administrative Access</h3>
-                        <p class="text-sm text-blue-600">Want to help manage this office? Apply for Admin privileges to manage registrations and office content.</p>
+                        <h2 class="text-2xl font-bold text-gray-800 uppercase tracking-tight">System Administrative Report</h2>
+                        <p class="text-gray-500 italic text-sm">Real-time analytics for monitored university offices.</p>
                     </div>
-                    <form action="{{ route('admin.request_promotion') }}" method="POST">
-                        @csrf
-                        <button type="submit" class="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-black uppercase text-[10px] hover:bg-blue-700 transition shadow-md whitespace-nowrap">
-                            Request Access
-                        </button>
-                    </form>
+                    <a href="{{ route('reports.download') }}" class="bg-[#800000] text-white px-6 py-2 rounded-lg font-bold hover:bg-red-900 transition shadow-lg flex items-center gap-2 text-sm uppercase">
+                        GENERATE PDF REPORT
+                    </a>
                 </div>
-            @else
-                <div class="bg-gray-100 border-l-4 border-gray-400 p-4 rounded-xl flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p class="text-xs font-bold text-gray-500 uppercase italic tracking-wider">Your request for Admin access is pending review by a Super Admin.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-red-50 p-6 rounded-xl border border-red-100 text-center">
+                        <p class="text-[10px] font-bold text-red-700 uppercase mb-1">Total Files</p>
+                        <h3 class="text-3xl font-black text-gray-800">{{ $totalActualFiles }}</h3>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-xl border border-gray-100 text-center">
+                        <p class="text-[10px] font-bold text-gray-500 uppercase mb-1">Monitored Offices</p>
+                        <h3 class="text-3xl font-black text-gray-800">{{ $monitoredOfficesCount }}</h3>
+                    </div>
+                    <div class="bg-green-50 p-6 rounded-xl border border-green-100 text-center">
+                        <p class="text-[10px] font-bold text-green-700 uppercase mb-1">Uploaded This Month</p>
+                        <h3 class="text-3xl font-black text-green-600">{{ $filesThisMonthCount }}</h3>
+                    </div>
+                    <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 text-center">
+                        <p class="text-[10px] font-bold text-blue-700 uppercase mb-1">Most Active Office</p>
+                        <h3 class="text-xl font-black text-blue-600 truncate px-2">{{ $mostActiveOffice }}</h3>
+                    </div>
                 </div>
-            @endif
+            </div>
+
+            {{-- CHARTS --}}
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-white p-5 shadow-md rounded-2xl border-t-4 border-yellow-400 h-[300px]">
+                    <h3 class="font-black text-gray-700 mb-4 text-[10px] uppercase tracking-widest text-center">Category Distribution</h3>
+                    <div class="relative h-48"><canvas id="categoryChart"></canvas></div>
+                </div>
+                <div class="bg-white p-5 shadow-md rounded-2xl border-t-4 border-[#800000] h-[300px]">
+                    <h3 class="font-black text-gray-700 mb-4 text-[10px] uppercase tracking-widest text-center">Office Uploads</h3>
+                    <div class="relative h-48"><canvas id="officeChart"></canvas></div>
+                </div>
+            </div>
+
         @endif
 
-        {{-- TOP STAT CARDS --}}
-        <div class="bg-white p-8 rounded-xl shadow-md border-t-4 border-[#800000]">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800 uppercase tracking-tight">System Administrative Report</h2>
-                    <p class="text-gray-500 italic text-sm">Real-time analytics for monitored university offices.</p>
-                </div>
-                <a href="{{ route('reports.download') }}" class="bg-[#800000] text-white px-6 py-2 rounded-lg font-bold hover:bg-red-900 transition shadow-lg flex items-center gap-2 text-sm uppercase">
-                    GENERATE PDF REPORT
-                </a>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="bg-red-50 p-6 rounded-xl border border-red-100 text-center">
-                    <p class="text-[10px] font-bold text-red-700 uppercase mb-1">Total Files</p>
-                    <h3 class="text-3xl font-black text-gray-800">{{ $totalActualFiles }}</h3>
-                </div>
-                <div class="bg-gray-50 p-6 rounded-xl border border-gray-100 text-center">
-                    <p class="text-[10px] font-bold text-gray-500 uppercase mb-1">Monitored Offices</p>
-                    <h3 class="text-3xl font-black text-gray-800">{{ $monitoredOfficesCount }}</h3>
-                </div>
-                <div class="bg-green-50 p-6 rounded-xl border border-green-100 text-center">
-                    <p class="text-[10px] font-bold text-green-700 uppercase mb-1">Uploaded This Month</p>
-                    <h3 class="text-3xl font-black text-green-600">{{ $filesThisMonthCount }}</h3>
-                </div>
-                <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 text-center">
-                    <p class="text-[10px] font-bold text-blue-700 uppercase mb-1">Most Active Office</p>
-                    <h3 class="text-xl font-black text-blue-600 truncate px-2">{{ $mostActiveOffice }}</h3>
-                </div>
-            </div>
-        </div>
-
-        {{-- CHARTS --}}
-        <div class="grid md:grid-cols-2 gap-6">
-            <div class="bg-white p-5 shadow-md rounded-2xl border-t-4 border-yellow-400 h-[300px]">
-                <h3 class="font-black text-gray-700 mb-4 text-[10px] uppercase tracking-widest text-center">Category Distribution</h3>
-                <div class="relative h-48"><canvas id="categoryChart"></canvas></div>
-            </div>
-            <div class="bg-white p-5 shadow-md rounded-2xl border-t-4 border-[#800000] h-[300px]">
-                <h3 class="font-black text-gray-700 mb-4 text-[10px] uppercase tracking-widest text-center">Office Uploads</h3>
-                <div class="relative h-48"><canvas id="officeChart"></canvas></div>
-            </div>
-        </div>
-
         <div class="grid lg:grid-cols-5 gap-8">
-            {{-- FEED AREA --}}
+            {{-- FEED AREA (Visible to All) --}}
             <div class="lg:col-span-3 space-y-6">
                 <h2 class="text-xl font-black text-[#800000] uppercase italic border-b-2 border-gray-800 pb-1">Announcement Feed</h2>
 
                 @forelse($feedItems as $announcement)
-                    {{-- ALPINE DATA INIT WITH EDIT STATE --}}
                     <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden" x-data="{ openComment: false, openEdit: false }">
                         <div class="p-4 flex items-center justify-between border-b bg-gray-50/50">
                             <div class="flex items-center gap-3">
@@ -93,8 +72,6 @@
                                     <p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">
                                         {{ is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office }} • 
                                         {{ $announcement->created_at->diffForHumans() }}
-                                        
-                                        {{-- EDITED TIMESTAMP --}}
                                         @if($announcement->updated_at->diffInSeconds($announcement->created_at) > 60)
                                             <span class="text-gray-400 italic"> (Edited {{ $announcement->updated_at->diffForHumans() }})</span>
                                         @endif
@@ -106,8 +83,7 @@
                                 @php
                                     $cats = is_array($announcement->category) ? $announcement->category : [$announcement->category];
                                     $displayCats = array_map(function($cat) use ($announcement) {
-                                        return (trim($cat) === 'Others' && !empty($announcement->custom_category))
-                                            ? $announcement->custom_category : $cat;
+                                        return (trim($cat) === 'Others' && !empty($announcement->custom_category)) ? $announcement->custom_category : $cat;
                                     }, $cats);
                                 @endphp
                                 {{ implode(', ', $displayCats) }}
@@ -115,14 +91,23 @@
                         </div>
                         
                         <div class="p-5 relative">
-                            {{-- EDIT BUTTON (Only visible to owner or admin) --}}
-                            @if(auth()->id() === $announcement->user_id || auth()->user()->isAdmin())
-                                <button @click="openEdit = true" class="absolute top-5 right-5 text-[9px] bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 font-black uppercase transition shadow-sm">
-                                    Edit Post
-                                </button>
+                            {{-- 2. ACTION BUTTONS LOCKDOWN (Only visible to the original poster) --}}
+                            @if(auth()->id() === $announcement->user_id)
+                                <div class="absolute top-5 right-5 flex gap-2">
+                                    <button @click="openEdit = true" class="text-[9px] bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 font-black uppercase transition shadow-sm">
+                                        Edit
+                                    </button>
+
+                                    <form action="{{ route('announcements.destroy', $announcement->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to permanently delete this post and its files from all offices?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-[9px] bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 font-black uppercase transition shadow-sm">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
                             @endif
 
-                            {{-- DATE BADGE --}}
                             @if($announcement->scheduled_date)
                                 <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-md text-[9px] font-black uppercase mb-3 border border-blue-100">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -133,7 +118,6 @@
                             <h4 class="font-black text-sm text-[#800000] uppercase mb-2 w-5/6">{{ $announcement->title }}</h4>
                             <p class="text-xs text-gray-600 italic leading-relaxed whitespace-pre-line">{{ $announcement->content }}</p>
                             
-                            {{-- MULTIPLE FILE ATTACHMENT DISPLAY --}}
                             @php 
                                 $files = [];
                                 if($announcement->file_path) {
@@ -158,7 +142,8 @@
                             @endif
                         </div>
 
-                        {{-- THE EDIT MODAL (Hidden by default) --}}
+                        {{-- EDIT MODAL (POSTER ONLY) --}}
+                        @if(auth()->id() === $announcement->user_id)
                         <div x-show="openEdit" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm px-4">
                             <div @click.away="openEdit = false" class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto border-t-4 border-[#800000]">
                                 <div class="flex justify-between items-center border-b pb-3 mb-4">
@@ -177,12 +162,10 @@
 
                                     <div>
                                         <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Content</label>
-                                        {{-- REQUIRED REMOVED BELOW --}}
                                         <textarea name="content" rows="4" class="w-full p-3 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#800000]">{{ $announcement->content }}</textarea>
                                     </div>
 
                                     <div class="grid grid-cols-2 gap-4">
-                                        {{-- OFFICES SELECTION --}}
                                         <div class="bg-gray-50 p-3 rounded-lg border">
                                             <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-2 border-b pb-1">Target Offices</label>
                                             <div class="space-y-1">
@@ -198,8 +181,7 @@
                                             </div>
                                         </div>
 
-                                        {{-- DYNAMIC CATEGORY SELECTION --}}
-                                        <div class="bg-gray-50 p-3 rounded-lg border flex flex-col justify-between" x-data="{ showCustom: false }">
+                                        <div class="bg-gray-50 p-3 rounded-lg border flex flex-col justify-between" x-data="{ showCustom: {{ $announcement->custom_category ? 'true' : 'false' }} }">
                                             <div>
                                                 <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-2 border-b pb-1">Categories</label>
                                                 <div class="space-y-1 max-h-[150px] overflow-y-auto pr-2">
@@ -213,7 +195,6 @@
                                                         </label>
                                                     @endforeach
                                                 </div>
-                                                
                                                 <div class="mt-3" x-show="showCustom" x-cloak x-transition>
                                                     <input type="text" name="custom_category" value="{{ $announcement->custom_category }}" placeholder="Type new category name..." class="w-full p-2 border border-[#800000] rounded text-xs outline-none focus:ring-2 focus:ring-[#800000] bg-red-50">
                                                 </div>
@@ -226,26 +207,23 @@
                                             <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Scheduled Date (Optional)</label>
                                             <input type="date" name="scheduled_date" value="{{ $announcement->scheduled_date ? \Carbon\Carbon::parse($announcement->scheduled_date)->format('Y-m-d') : '' }}" class="w-full p-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#800000]">
                                         </div>
-                                        
-                                        {{-- MULTIPLE FILE REPLACEMENT & DELETION --}}
                                         <div x-data="{ addFileNames: '' }">
                                             <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Add More Files</label>
                                             <label class="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 w-full p-1.5 rounded text-xs font-bold transition flex items-center justify-center gap-2">
-                                                <span x-text="addFileNames ? 'Files Selected' : 'Choose Files to Add'">Choose Files to Add</span>
+                                                <span>Choose Files</span>
                                                 <input type="file" name="attachments[]" multiple class="hidden" @change="addFileNames = Array.from($event.target.files).map(f => f.name).join(', ');">
                                             </label>
                                             <template x-if="addFileNames"><p class="text-[9px] text-green-600 mt-1 italic truncate" x-text="addFileNames"></p></template>
                                         </div>
                                     </div>
 
-                                    {{-- CHECKLIST TO REMOVE EXISTING FILES --}}
                                     @if(!empty($files))
                                         <div class="bg-red-50 border border-red-100 p-3 rounded-lg">
                                             <label class="block text-[10px] font-black text-red-800 uppercase tracking-widest mb-2">Remove Existing Attachments</label>
                                             <div class="space-y-2">
                                                 @foreach($files as $file)
                                                     <label class="flex items-center gap-2 text-xs text-gray-700 bg-white p-2 rounded shadow-sm cursor-pointer border border-red-50 hover:bg-red-100 transition">
-                                                        <input type="checkbox" name="remove_files[]" value="{{ $file['path'] }}" class="text-red-600 focus:ring-red-500 rounded">
+                                                        <input type="checkbox" name="remove_files[]" value="{{ $file['path'] }}" class="text-red-600 rounded">
                                                         <span class="truncate">🗑️ Delete: {{ $file['original_name'] }}</span>
                                                     </label>
                                                 @endforeach
@@ -260,7 +238,7 @@
                                 </form>
                             </div>
                         </div>
-                        {{-- END EDIT MODAL --}}
+                        @endif
 
                         {{-- COMMENTS AREA --}}
                         <div class="px-5 py-3 border-t bg-gray-50/30">
@@ -298,7 +276,7 @@
             {{-- SIDEBAR AREA --}}
             <div class="lg:col-span-2 space-y-6">
 
-                {{-- RESTORED CALENDAR --}}
+                {{-- CALENDAR --}}
                 <div class="bg-white shadow-xl rounded-xl overflow-hidden border border-gray-200 border-t-4 border-blue-600">
                     <div class="p-4 bg-gray-50 flex items-center justify-between border-b">
                         <span class="text-[#1a202c] uppercase text-[10px] font-black tracking-widest">Upcoming Events Calendar</span>
@@ -354,25 +332,39 @@
         </div>
     </div>
 
+    {{-- SCRIPTS (Wrapped in Admin check to avoid JS errors for Staff) --}}
+    @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
     <script>
         const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
-        new Chart(document.getElementById('categoryChart'), {
-            type: 'doughnut',
-            data: {
-                labels: {!! json_encode($categoryData->pluck("category")) !!},
-                datasets: [{ data: {!! json_encode($categoryData->pluck("total")) !!}, backgroundColor: ['#800000', '#FCD116', '#1a1a1a', '#A8A8A8'], borderWidth: 0 }]
-            },
-            options: { ...opts, cutout: '75%' }
-        });
-        new Chart(document.getElementById('officeChart'), {
-            type: 'bar',
-            data: {
-                labels: {!! json_encode($filteredOfficeData->pluck("office")) !!},
-                datasets: [{ data: {!! json_encode($filteredOfficeData->pluck("total")) !!}, backgroundColor: '#800000', borderRadius: 5 }]
-            },
-            options: { ...opts, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
-        });
+        
+        // Category Chart
+        const catCtx = document.getElementById('categoryChart');
+        if(catCtx) {
+            new Chart(catCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: {!! json_encode($categoryData->pluck("category")) !!},
+                    datasets: [{ data: {!! json_encode($categoryData->pluck("total")) !!}, backgroundColor: ['#800000', '#FCD116', '#1a1a1a', '#A8A8A8'], borderWidth: 0 }]
+                },
+                options: { ...opts, cutout: '75%' }
+            });
+        }
+
+        // Office Chart
+        const offCtx = document.getElementById('officeChart');
+        if(offCtx) {
+            new Chart(offCtx, {
+                type: 'bar',
+                data: {
+                    labels: {!! json_encode($filteredOfficeData->pluck("office")) !!},
+                    datasets: [{ data: {!! json_encode($filteredOfficeData->pluck("total")) !!}, backgroundColor: '#800000', borderRadius: 5 }]
+                },
+                options: { ...opts, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+            });
+        }
     </script>
+    @endif
+
     <style>
         [x-cloak] { display: none !important; }
         ::-webkit-scrollbar { width: 4px; }
