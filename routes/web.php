@@ -54,6 +54,11 @@ Route::middleware('auth')->group(function () {
 
     // 4. Announcement & Comments
     Route::post('/announcements/store', [FileController::class, 'storeAnnouncement'])->name('announcements.store');
+    
+    // --- NEW: Route for updating announcements ---
+    Route::put('/announcements/{announcement}', [FileController::class, 'updateAnnouncement'])->name('announcements.update');
+    // ---------------------------------------------
+
     Route::post('/announcements/{announcement}/comments', [CommentController::class, 'store'])->name('comments.store');
 
     // 5. File Management & Viewing
@@ -63,7 +68,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/files/import', [FileController::class, 'import'])->name('files.import');
 
     // ========================================================================
-    // THE FIX: Promotion Request Route (Accessible to regular Staff)
+    // Promotion Request Route (Accessible to regular Staff)
     // ========================================================================
     Route::post('/admin/request-promotion', [AdminController::class, 'requestPromotion'])->name('admin.request_promotion');
 

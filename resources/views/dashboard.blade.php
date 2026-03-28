@@ -83,14 +83,21 @@
                 <h2 class="text-xl font-black text-[#800000] uppercase italic border-b-2 border-gray-800 pb-1">Announcement Feed</h2>
 
                 @forelse($feedItems as $announcement)
-                    <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden" x-data="{ openComment: false }">
+                    {{-- ALPINE DATA INIT WITH EDIT STATE --}}
+                    <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden" x-data="{ openComment: false, openEdit: false }">
                         <div class="p-4 flex items-center justify-between border-b bg-gray-50/50">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-full bg-[#800000] flex items-center justify-center text-white font-bold text-xs uppercase">{{ substr($announcement->user->name ?? '?', 0, 1) }}</div>
                                 <div>
                                     <p class="text-xs font-black text-gray-900 uppercase">{{ $announcement->user->name ?? 'Admin' }}</p>
                                     <p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">
-                                        {{ is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office }} • {{ $announcement->created_at->diffForHumans() }}
+                                        {{ is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office }} • 
+                                        {{ $announcement->created_at->diffForHumans() }}
+                                        
+                                        {{-- EDITED TIMESTAMP --}}
+                                        @if($announcement->updated_at->diffInSeconds($announcement->created_at) > 60)
+                                            <span class="text-gray-400 italic"> (Edited {{ $announcement->updated_at->diffForHumans() }})</span>
+                                        @endif
                                     </p>
                                 </div>
                             </div>
@@ -107,8 +114,15 @@
                             </span>
                         </div>
                         
-                        <div class="p-5">
-                            {{-- DATE BADGE: Shows up if the post has a date (TEST 3, TEST 4, etc.) --}}
+                        <div class="p-5 relative">
+                            {{-- EDIT BUTTON (Only visible to owner or admin) --}}
+                            @if(auth()->id() === $announcement->user_id || auth()->user()->isAdmin())
+                                <button @click="openEdit = true" class="absolute top-5 right-5 text-[9px] bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 font-black uppercase transition shadow-sm">
+                                    Edit Post
+                                </button>
+                            @endif
+
+                            {{-- DATE BADGE --}}
                             @if($announcement->scheduled_date)
                                 <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-md text-[9px] font-black uppercase mb-3 border border-blue-100">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -116,8 +130,8 @@
                                 </div>
                             @endif
 
-                            <h4 class="font-black text-sm text-[#800000] uppercase mb-2">{{ $announcement->title }}</h4>
-                            <p class="text-xs text-gray-600 italic leading-relaxed">{{ $announcement->content }}</p>
+                            <h4 class="font-black text-sm text-[#800000] uppercase mb-2 w-5/6">{{ $announcement->title }}</h4>
+                            <p class="text-xs text-gray-600 italic leading-relaxed whitespace-pre-line">{{ $announcement->content }}</p>
                             
                             {{-- FILE ATTACHMENT BOX --}}
                             <div class="mt-4 p-3 bg-gray-100 rounded-lg flex items-center justify-between border-l-4 border-[#800000]">
@@ -130,6 +144,94 @@
                                 @endif
                             </div>
                         </div>
+
+                        {{-- THE EDIT MODAL (Hidden by default) --}}
+                        <div x-show="openEdit" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm px-4">
+                            <div @click.away="openEdit = false" class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto border-t-4 border-[#800000]">
+                                <div class="flex justify-between items-center border-b pb-3 mb-4">
+                                    <h3 class="text-lg font-black text-[#800000] uppercase tracking-tight">Edit Announcement</h3>
+                                    <button @click="openEdit = false" class="text-gray-400 hover:text-red-600 font-bold text-2xl transition">&times;</button>
+                                </div>
+
+                                <form action="{{ route('announcements.update', $announcement->id) }}" method="POST" enctype="multipart/form-data" class="space-y-5">
+                                    @csrf
+                                    @method('PUT')
+                                    
+                                    <div>
+                                        <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Title</label>
+                                        <input type="text" name="title" value="{{ $announcement->title }}" class="w-full p-3 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#800000]" required>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Content</label>
+                                        <textarea name="content" rows="4" class="w-full p-3 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#800000]" required>{{ $announcement->content }}</textarea>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-4">
+                                        {{-- OFFICES SELECTION --}}
+                                        <div class="bg-gray-50 p-3 rounded-lg border">
+                                            <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-2 border-b pb-1">Target Offices</label>
+                                            <div class="space-y-1">
+                                                @php $offices = ['All Offices', 'ARCDO', 'OCPS', 'OSFA', 'OSS', 'OUR', 'SDPO', 'UCCA']; @endphp
+                                                @foreach($offices as $office)
+                                                    <label class="flex items-center gap-2 text-xs text-gray-600">
+                                                        <input type="checkbox" name="office[]" value="{{ $office }}" 
+                                                        {{ in_array($office, is_array($announcement->office) ? $announcement->office : [$announcement->office]) ? 'checked' : '' }}
+                                                        class="rounded text-[#800000] focus:ring-[#800000]">
+                                                        {{ $office }}
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        </div>
+
+                                        {{-- DYNAMIC CATEGORY SELECTION --}}
+                                        <div class="bg-gray-50 p-3 rounded-lg border flex flex-col justify-between" x-data="{ showCustom: false }">
+                                            <div>
+                                                <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-2 border-b pb-1">Categories</label>
+                                                <div class="space-y-1 max-h-[150px] overflow-y-auto pr-2">
+                                                    @foreach($allAvailableCategories as $cat)
+                                                        <label class="flex items-center gap-2 text-xs text-gray-600">
+                                                            <input type="checkbox" name="category[]" value="{{ $cat }}" 
+                                                            {{ in_array($cat, is_array($announcement->category) ? $announcement->category : [$announcement->category]) ? 'checked' : '' }}
+                                                            @if($cat === 'Others') x-model="showCustom" @endif
+                                                            class="rounded text-[#800000] focus:ring-[#800000]">
+                                                            {{ $cat }}
+                                                        </label>
+                                                    @endforeach
+                                                </div>
+                                                
+                                                {{-- This input only shows when 'showCustom' is true (Others is clicked) --}}
+                                                <div class="mt-3" x-show="showCustom" x-cloak x-transition>
+                                                    <input type="text" name="custom_category" value="{{ $announcement->custom_category }}" placeholder="Type new category name..." class="w-full p-2 border border-[#800000] rounded text-xs outline-none focus:ring-2 focus:ring-[#800000] bg-red-50">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Scheduled Date (Optional)</label>
+                                            <input type="date" name="scheduled_date" value="{{ $announcement->scheduled_date ? \Carbon\Carbon::parse($announcement->scheduled_date)->format('Y-m-d') : '' }}" class="w-full p-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#800000]">
+                                        </div>
+                                        
+                                        {{-- FILE REPLACEMENT --}}
+                                        <div>
+                                            <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Replace Attachment (Optional)</label>
+                                            <input type="file" name="attachment" class="w-full p-1 border border-gray-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#800000] bg-white">
+                                            @if($announcement->file_path)
+                                                <p class="text-[9px] text-gray-400 mt-1 italic">Current: {{ basename($announcement->file_path) }}</p>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
+                                        <button type="button" @click="openEdit = false" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-[10px] font-black uppercase hover:bg-gray-200 transition">Cancel</button>
+                                        <button type="submit" class="px-5 py-2.5 bg-[#800000] text-white rounded-lg text-[10px] font-black uppercase shadow-md hover:bg-red-900 transition">Save Changes</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        {{-- END EDIT MODAL --}}
 
                         {{-- COMMENTS AREA --}}
                         <div class="px-5 py-3 border-t bg-gray-50/30">
@@ -167,7 +269,7 @@
             {{-- SIDEBAR AREA --}}
             <div class="lg:col-span-2 space-y-6">
 
-                {{-- RESTORED CALENDAR: Shows MAR 27 style boxes --}}
+                {{-- RESTORED CALENDAR --}}
                 <div class="bg-white shadow-xl rounded-xl overflow-hidden border border-gray-200 border-t-4 border-blue-600">
                     <div class="p-4 bg-gray-50 flex items-center justify-between border-b">
                         <span class="text-[#1a202c] uppercase text-[10px] font-black tracking-widest">Upcoming Events Calendar</span>

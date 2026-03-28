@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Announcement;
+use App\Models\Office;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
@@ -13,59 +15,136 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        // 1. Fetch ALL data with essential relationships
-        $all = Announcement::with(['user', 'comments.user'])->latest()->get();
+        $user = Auth::user();
+        $isAdmin = $user->isSuperAdmin() || $user->isAdmin();
+        $userOfficeCode = $user->office ? $user->office->code : null;
 
-        // 2. Partitioning Logic for UI Display
+        // ==========================================
+        // 1. ISOLATION & RAW DATA (For Analytics)
+        // ==========================================
+        $query = Announcement::with(['user', 'comments.user'])->latest();
+
+        // Staff only see data/posts assigned to their specific office OR "All Offices"
+        if (!$isAdmin) {
+            $query->where(function($q) use ($userOfficeCode) {
+                $q->whereJsonContains('office', $userOfficeCode)
+                  ->orWhereJsonContains('office', 'All Offices')
+                  ->orWhere('office', 'LIKE', '%"'.$userOfficeCode.'"%')
+                  ->orWhere('office', 'LIKE', '%"All Offices"%');
+            });
+        }
+
+        // RAW DATA: This represents every single physical file/row in the database
+        $rawAnnouncements = $query->get();
+
+        // ==========================================
+        // 2. DEDUPLICATION LOGIC (For the Feed Only)
+        // ==========================================
+        $groupedAnnouncements = $rawAnnouncements->groupBy(function($item) {
+            // Group by Title, Content, and creation minute to merge simultaneous uploads
+            return $item->title . '|' . $item->content . '|' . $item->created_at->format('Y-m-d H:i');
+        })->map(function($group) {
+            $base = $group->first();
+            
+            // Merge all targeted offices and categories into arrays for the UI badges
+            $allOffices = $group->pluck('office')->flatten()->unique()->filter()->values()->toArray();
+            $allCategories = $group->pluck('category')->flatten()->unique()->filter()->values()->toArray();
+            
+            $base->office = $allOffices;
+            $base->category = $allCategories;
+            
+            return $base;
+        })->values()->sortByDesc('created_at');
+
+        // ==========================================
+        // 3. DYNAMIC CATEGORY EXTRACTION
+        // ==========================================
+        // Get all categories ever used in the entire system
+        $allCategoriesInDb = Announcement::pluck('category')->flatten()->unique()->toArray();
         
-        // SIDEBAR CALENDAR: Items that have a scheduled date in the future (or today)
-        $upcomingEvents = $all->filter(function ($item) {
+        // Default categories
+        $defaultCategories = [
+            'Memorandums', 'Executive Orders', 'Reports', 'Minutes of Meeting', 
+            'Activity Proposals', 'Letters', 'Financials', 'Forms', 
+            'Policies', 'MOAs', 'Masterlists', 'Event Material'
+        ];
+
+        // Merge defaults with DB categories, remove 'Others', sort alphabetically
+        $allAvailableCategories = collect(array_merge($defaultCategories, $allCategoriesInDb))
+            ->reject(fn($c) => strtolower(trim($c)) === 'others')
+            ->unique()->sort()->values()->toArray();
+        
+        // Force 'Others' to always be the very last option
+        $allAvailableCategories[] = 'Others';
+
+        // ==========================================
+        // 4. UI DISPLAY VARIABLES (Uses Grouped Data)
+        // ==========================================
+        
+        $upcomingEvents = $groupedAnnouncements->filter(function ($item) {
             return !empty($item->scheduled_date) && 
                    Carbon::parse($item->scheduled_date)->isAfter(now()->startOfDay());
         })->sortBy('scheduled_date');
 
-        // ANNOUNCEMENT FEED: Show everything (No rejection logic to ensure feed isn't empty)
-        $feedItems = $all; 
+        $feedItems = $groupedAnnouncements; 
 
-        // REPOSITORY: Only items that have a physical file attachment
-        $repositoryFiles = $all->filter(fn($item) => !empty($item->file_path));
+        $repositoryFiles = $groupedAnnouncements->filter(fn($item) => !empty($item->file_path));
 
-        // 3. Analytic & Chart Data Calculations
+        // ==========================================
+        // 5. CHART & ANALYTICS (Uses RAW Data)
+        // ==========================================
         
-        // Category Distribution (Flattened because categories are stored as JSON/Arrays)
-        $categoryData = $all->pluck('category')->flatten()->filter()
+        // Category Distribution (Counts actual files in folders)
+        $categoryData = $rawAnnouncements->pluck('category')->flatten()->filter()
             ->groupBy(fn($cat) => $cat)
             ->map(fn($group, $key) => (object) ['category' => $key, 'total' => $group->count()])
             ->values();
 
-        // Office Distribution
-        $officeData = $all->pluck('office')->flatten()->filter()
+        // Office Distribution (Expands "All Offices" so the chart counts them properly)
+        $allOfficeCodes = Office::pluck('code')->toArray();
+        $defaultOffices = !empty($allOfficeCodes) ? $allOfficeCodes : ['ARCDO', 'OCPS', 'OSFA', 'OSS', 'OUR', 'SDPO', 'UCCA'];
+        
+        $expandedOffices = collect();
+
+        foreach ($rawAnnouncements as $item) {
+            $offices = is_array($item->office) ? $item->office : [$item->office];
+            
+            if (in_array('All Offices', $offices)) {
+                foreach ($defaultOffices as $do) {
+                    $expandedOffices->push($do);
+                }
+            } else {
+                foreach ($offices as $o) {
+                    $expandedOffices->push($o);
+                }
+            }
+        }
+
+        $officeData = $expandedOffices->filter()
             ->groupBy(fn($off) => $off)
             ->map(fn($group, $key) => (object) ['office' => $key, 'total' => $group->count()])
             ->values();
 
-        // FILTERED OFFICE DATA: Excludes generic labels to keep the Bar Chart clean
         $filteredOfficeData = $officeData->reject(fn($o) => 
             in_array(strtolower($o->office), ['general', 'all offices'])
-        );
+        )->sortBy('office')->values();
 
-        // 4. Primary Metrics
+        // ==========================================
+        // 6. PRIMARY METRICS (Uses RAW Data)
+        // ==========================================
         
-        // Total Volume of Posts/Files
-        $totalActualFiles = $all->count(); 
-        
-        // Number of specific monitored offices active in the system
+        $totalActualFiles = $rawAnnouncements->count(); // Now counts the true total of folder files
         $monitoredOfficesCount = $filteredOfficeData->count();
 
-        // Growth metrics for the current month
-        $filesThisMonthCount = $all->filter(function($item) {
+        $filesThisMonthCount = $rawAnnouncements->filter(function($item) {
             return $item->created_at && $item->created_at->isCurrentMonth();
         })->count();
 
-        // Identify the top performer
         $mostActiveOffice = $filteredOfficeData->sortByDesc('total')->first()->office ?? 'N/A';
 
-        // 5. Return view with all required variables
+        // ==========================================
+        // 7. RETURN VIEW
+        // ==========================================
         return view('dashboard', [
             'upcomingEvents'        => $upcomingEvents,
             'feedItems'             => $feedItems,
@@ -75,7 +154,8 @@ class DashboardController extends Controller
             'filesThisMonthCount'   => $filesThisMonthCount,
             'mostActiveOffice'      => $mostActiveOffice,
             'categoryData'          => $categoryData,
-            'filteredOfficeData'    => $filteredOfficeData // Crucial: Fixes the Blade error
+            'filteredOfficeData'    => $filteredOfficeData,
+            'allAvailableCategories'=> $allAvailableCategories // Pass to blade view
         ]);
     }
 }

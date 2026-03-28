@@ -28,6 +28,11 @@
                     <p class="text-xs font-bold uppercase tracking-widest">{{ session('success') }}</p>
                 </div>
             @endif
+            @if(session('error'))
+                <div class="mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-sm" role="alert">
+                    <p class="text-xs font-bold uppercase tracking-widest">{{ session('error') }}</p>
+                </div>
+            @endif
 
             <div class="mb-8 border-l-4 border-[#FCD116] pl-4">
                 <h1 class="text-3xl font-black text-[#800000] uppercase tracking-tighter">
@@ -109,12 +114,16 @@
                                             </a>
 
                                             @auth
-                                                <form action="{{ route('files.destroy') }}" method="POST" onsubmit="return confirm('Permanently delete this file?')">
+                                                <form action="{{ route('files.destroy') }}" method="POST" onsubmit="return confirm('Remove this file? (Shared files/categories will be safely unlinked)')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    {{-- THIS IS THE FIX: Passing the ID so the controller knows what to delete in the Database --}}
                                                     <input type="hidden" name="id" value="{{ $f_id }}">
                                                     <input type="hidden" name="file_path" value="{{ $f_path }}">
+                                                    
+                                                    {{-- TWO-TIER UNLINK LOGIC FIX --}}
+                                                    <input type="hidden" name="office_context" value="{{ $office }}">
+                                                    <input type="hidden" name="category_context" value="{{ $folderName }}">
+                                                    
                                                     <button type="submit" class="bg-red-600 text-white px-3 py-1.5 rounded font-black text-[9px] hover:bg-red-800 transition uppercase tracking-widest">
                                                         Delete
                                                     </button>
@@ -133,7 +142,7 @@
 
     <footer class="py-8 text-center border-t border-gray-200">
         <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-            &copy; {{ date('Y') }} Office of the Vice President for Student Affairs and Services
+            &copy; {{ date('Y') }} Office of Student Affairs and Services
         </p>
     </footer>
 </body>
