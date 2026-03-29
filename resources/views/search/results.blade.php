@@ -18,7 +18,6 @@
                         <div>
                             <h3 class="font-bold text-[#800000]">{{ $file->title ?? 'Untitled Document' }}</h3>
                             
-                            {{-- UPDATED: Handle Array or String for Office and Category --}}
                             <p class="text-xs text-gray-500 uppercase font-semibold">
                                 {{ is_array($file->office) ? implode(', ', $file->office) : $file->office }} 
                                 • 
@@ -26,10 +25,32 @@
                             </p>
                             
                             <p class="text-sm text-gray-700 mt-1">{{ Str::limit($file->content, 100) }}</p>
+
+                            {{-- NEW: Show attached filenames below the result! --}}
+                            @php
+                                $attachedFiles = json_decode($file->file_path, true);
+                            @endphp
+                            @if(is_array($attachedFiles) && count($attachedFiles) > 0)
+                                <div class="mt-2 space-y-1">
+                                    @foreach($attachedFiles as $f)
+                                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 border border-gray-200 rounded text-[9px] font-bold text-gray-600 uppercase">
+                                            📄 {{ $f['original_name'] ?? 'Document' }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            @endif
+
                         </div>
-                        @if($file->file_path)
-                            <a href="{{ route('file.view', $file->id) }}" class="bg-[#800000] text-white px-4 py-2 rounded text-xs font-bold uppercase hover:bg-red-900 transition">View File</a>
-                        @endif
+                        <div class="flex gap-2">
+                            @if($file->link)
+                                <a href="{{ $file->link }}" target="_blank" class="bg-blue-100 text-blue-800 px-4 py-2 rounded text-xs font-bold uppercase hover:bg-blue-200 transition flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg> Link
+                                </a>
+                            @endif
+                            @if($file->file_path)
+                                <a href="{{ route('file.view', $file->id) }}" class="bg-[#800000] text-white px-4 py-2 rounded text-xs font-bold uppercase hover:bg-red-900 transition">View File</a>
+                            @endif
+                        </div>
                     </div>
                 @endforeach
             </div>

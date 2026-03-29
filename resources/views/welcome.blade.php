@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Home - OSAS')
+@section('title', 'Home - OVPSAS Portal')
 
 @section('content')
     <div class="max-w-7xl mx-auto px-6 lg:px-8 space-y-10">
@@ -19,7 +19,7 @@
             </div>
         @endif
 
-        {{-- ANNOUNCEMENT BOARD (Only visible to logged-in users) --}}
+        {{-- ANNOUNCEMENT BOARD --}}
         @auth
             <div class="bg-white shadow-xl sm:rounded-lg border-l-8 border-[#800000]">
                 <div class="bg-[#800000] py-3 px-6 flex items-center gap-3">
@@ -27,19 +27,16 @@
                     <h2 class="text-white font-bold tracking-widest uppercase text-sm">Announcements Board</h2>
                 </div>
                 <div class="p-8">
-                    {{-- FIXED: Ensure enctype is here (it was, which is good!) --}}
                     <form action="{{ route('announcements.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="max-w-5xl space-y-5">
 
                             <div class="flex flex-col md:flex-row gap-6 items-start relative z-20">
 
-                                {{-- 1. Target Office Restriction --}}
+                                {{-- Target Office Restriction --}}
                                 <div class="flex flex-col flex-1 w-full" x-data="{ open: false, selected: [] }">
                                     <label class="font-bold text-[#800000] text-sm mb-1">Target Offices:</label>
-                                    
                                     @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
-                                        {{-- ADMN VIEW: Can select multiple offices --}}
                                         <div class="relative" @click.away="open = false">
                                             <div @click="open = !open" class="w-full bg-gray-100 border border-gray-200 rounded-md px-4 py-2.5 text-sm cursor-pointer flex justify-between items-center hover:bg-gray-200 transition">
                                                 <span x-text="selected.length > 0 ? selected.join(', ') : 'Select Offices...'" :class="selected.length > 0 ? 'text-gray-800 font-bold' : 'text-gray-500'"></span>
@@ -67,21 +64,16 @@
                                             </div>
                                         </div>
                                     @else
-                                        {{-- STAFF VIEW: Locked to their own office --}}
                                         <div class="w-full bg-gray-200 border border-gray-300 rounded-md px-4 py-2.5 text-sm cursor-not-allowed">
                                             <span class="text-gray-800 font-bold">{{ auth()->user()->office->code ?? 'No Office Assigned' }}</span>
                                             <input type="hidden" name="office[]" value="{{ auth()->user()->office->code ?? '' }}">
                                         </div>
                                     @endif
-                                    @error('office')
-                                        <span class="text-xs font-bold text-red-600 mt-1 italic">{{ $message }}</span>
-                                    @enderror
                                 </div>
 
-                                {{-- 2. DYNAMIC Category Dropdown Restriction --}}
+                                {{-- Category Selection --}}
                                 <div class="flex flex-col flex-1 w-full" x-data="{ open: false, selected: [], customCategory: '' }">
                                     <label class="font-bold text-[#800000] text-sm mb-1">Categories:</label>
-                                    
                                     @php
                                         $restrictedCats = ['Memorandums', 'Executive Orders'];
                                         $displayCategories = [];
@@ -89,9 +81,7 @@
 
                                         foreach($allAvailableCategories as $cat) {
                                             if(in_array($cat, $restrictedCats)) {
-                                                if($isAdmin) {
-                                                    $displayCategories[] = $cat;
-                                                }
+                                                if($isAdmin) { $displayCategories[] = $cat; }
                                             } else {
                                                 $displayCategories[] = $cat;
                                             }
@@ -116,21 +106,15 @@
                                                     </label>
                                                 @endforeach
                                             </div>
-                                            
-                                            {{-- Dynamic Text Input for 'Others' --}}
                                             <div x-show="selected.includes('Others')" class="p-3 bg-yellow-50 border-t border-gray-100" x-transition>
                                                 <label class="text-[10px] font-bold text-[#800000] uppercase mb-1 block">Specify Other Category:</label>
                                                 <input type="text" name="custom_category" x-model="customCategory" placeholder="Type here..." class="w-full text-sm border-gray-300 rounded-md focus:ring-[#800000] focus:border-[#800000] py-1.5">
                                             </div>
-                                            
                                             <div class="bg-gray-50 border-t border-gray-100 p-2 flex justify-end">
                                                 <button type="button" @click="open = false" class="bg-[#800000] text-white text-xs font-bold px-4 py-1.5 rounded hover:bg-red-900 transition uppercase tracking-wider">OK</button>
                                             </div>
                                         </div>
                                     </div>
-                                    @error('category')
-                                        <span class="text-xs font-bold text-red-600 mt-1 italic">{{ $message }}</span>
-                                    @enderror
                                 </div>
 
                                 {{-- Target Date Picker --}}
@@ -138,9 +122,6 @@
                                     <label class="font-bold text-[#800000] text-sm mb-1">Target Date (Optional):</label>
                                     <input type="date" name="scheduled_date" value="{{ old('scheduled_date') }}"
                                            class="w-full bg-gray-100 border border-gray-200 rounded-md px-4 py-2.5 text-sm focus:ring-2 focus:ring-yellow-400 hover:bg-gray-200 transition cursor-pointer">
-                                    @error('scheduled_date')
-                                        <span class="text-xs font-bold text-red-600 mt-1 italic">{{ $message }}</span>
-                                    @enderror
                                 </div>
                             </div>
 
@@ -159,33 +140,40 @@
                             <div class="flex flex-col relative z-0">
                                 <div class="flex items-start gap-4">
                                     <label class="font-bold text-[#800000] w-20 pt-2 text-sm">Content:</label>
-                                    <textarea name="content" rows="3" placeholder="Enter Details..." class="flex-grow bg-gray-100 border-none rounded-md px-4 py-2.5 italic text-sm focus:ring-2 focus:ring-yellow-400 w-full">{{ old('content') }}</textarea>
+                                    <textarea name="content" rows="3" placeholder="Enter post details (optional if files or link are attached)..." class="flex-grow bg-gray-100 border-none rounded-md px-4 py-2.5 italic text-sm focus:ring-2 focus:ring-yellow-400 w-full">{{ old('content') }}</textarea>
                                 </div>
                                 @error('content')
-                                    <span class="text-xs font-bold text-red-600 mt-1 ml-24 italic">{{ $message }}</span>
+                                    <span class="text-xs font-bold text-red-600 mt-1 ml-24 italic">⚠️ {{ $message }}</span>
                                 @enderror
                             </div>
 
-                            {{-- MULTIPLE FILE UPLOAD (FIXED) --}}
+                            {{-- NEW: Collaboration Link --}}
+                            <div class="flex flex-col relative z-0">
+                                <div class="flex items-center gap-4">
+                                    <label class="font-bold text-[#800000] w-20 text-sm">Ext. Link:</label>
+                                    <input type="url" name="link" value="{{ old('link') }}" placeholder="e.g., https://docs.google.com/..." class="flex-grow bg-gray-100 border-none rounded-md px-4 py-2.5 italic text-sm focus:ring-2 focus:ring-yellow-400">
+                                </div>
+                                @error('link')
+                                    <span class="text-xs font-bold text-red-600 mt-1 ml-24 italic">⚠️ {{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            {{-- Multi-File Upload & Submit --}}
                             <div class="flex flex-col md:flex-row items-center justify-between gap-4 pl-0 md:pl-24 relative z-0" x-data="{ fileNames: '' }">
                                 <div class="flex items-center gap-3 w-full">
-                                    {{-- THE FIX: Added 'for="fileInput"' to label, added 'id="fileInput"' to input, changed name to 'attachment[]' --}}
                                     <label for="fileInput" class="cursor-pointer bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md text-xs font-bold transition flex items-center gap-2">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                         </svg>
                                         <span x-text="fileNames ? 'Files Selected' : 'Upload Files'">Upload Files</span>
                                     </label>
-                                    <input type="file" id="fileInput" name="attachment[]" multiple class="hidden" @change="fileNames = Array.from($event.target.files).map(f => f.name).join(', ');">
+                                    <input type="file" id="fileInput" name="attachment[]" multiple class="hidden" 
+                                           @change="fileNames = Array.from($event.target.files).map(f => f.name).join(', ');">
                                     
                                     <template x-if="fileNames">
                                         <span class="text-[10px] text-green-600 font-bold italic max-w-[300px] truncate" x-text="fileNames"></span>
                                     </template>
-                                    
                                     @error('attachment.*')
-                                        <span class="text-xs font-bold text-red-600 italic ml-2">{{ $message }}</span>
-                                    @enderror
-                                    @error('attachment')
                                         <span class="text-xs font-bold text-red-600 italic ml-2">{{ $message }}</span>
                                     @enderror
                                 </div>
@@ -228,7 +216,7 @@
             </div>
         </div>
 
-        {{-- THREE COLUMNS --}}
+        {{-- FEED COLUMNS (Memorandums, Executive Orders, Activity) --}}
         <div class="grid lg:grid-cols-3 gap-10">
             {{-- Memorandums --}}
             <div class="bg-white shadow-lg sm:rounded-lg border-l-8 border-[#800000] relative overflow-hidden">
@@ -244,12 +232,9 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                 </svg>
                                 <span class="truncate block text-[11px] font-bold uppercase flex-grow" title="{{ $announcement->title }}">{{ $announcement->title }}</span>
-                                
-                                @if($announcement->file_path)
-                                    <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="bg-gray-100 text-[#800000] px-2 py-0.5 rounded text-[8px] font-black uppercase hover:bg-red-50 transition border border-red-100 shadow-sm">FILE</a>
-                                @else
-                                    <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="bg-gray-50 text-gray-500 px-2 py-0.5 rounded text-[8px] font-black uppercase hover:bg-gray-200 transition border border-gray-200 shadow-sm">TXT</a>
-                                @endif
+                                <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="bg-gray-100 text-[#800000] px-2 py-0.5 rounded text-[8px] font-black uppercase hover:bg-red-50 transition border border-red-100 shadow-sm">
+                                    {{ $announcement->file_path ? 'FILE' : ($announcement->link ? 'LINK' : 'TXT') }}
+                                </a>
                             </div>
                         @empty
                             <p class="text-[10px] text-gray-400 italic text-center">Empty.</p>
@@ -272,12 +257,9 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                 </svg>
                                 <span class="truncate block text-[11px] font-bold uppercase flex-grow" title="{{ $announcement->title }}">{{ $announcement->title }}</span>
-                                
-                                @if($announcement->file_path)
-                                    <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="bg-gray-100 text-[#800000] px-2 py-0.5 rounded text-[8px] font-black uppercase hover:bg-red-50 transition border border-red-100 shadow-sm">FILE</a>
-                                @else
-                                    <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="bg-gray-50 text-gray-500 px-2 py-0.5 rounded text-[8px] font-black uppercase hover:bg-gray-200 transition border border-gray-200 shadow-sm">TXT</a>
-                                @endif
+                                <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="bg-gray-100 text-[#800000] px-2 py-0.5 rounded text-[8px] font-black uppercase hover:bg-red-50 transition border border-red-100 shadow-sm">
+                                    {{ $announcement->file_path ? 'FILE' : ($announcement->link ? 'LINK' : 'TXT') }}
+                                </a>
                             </div>
                         @empty
                             <p class="text-[10px] text-gray-400 italic text-center">Empty.</p>

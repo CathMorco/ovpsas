@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $office }} Files - OSAS</title>
+    <title>{{ $office }} Files - OVPSAS Portal</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-100 font-sans antialiased flex flex-col min-h-screen">
@@ -48,13 +48,9 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                         </svg>
                         <p class="text-gray-400 font-bold italic tracking-wide">NO FILES FOUND IN THIS OFFICE</p>
-                        <p class="text-gray-400 text-[10px] uppercase">Upload a file in the Announcement Board to see it here.</p>
                     </div>
                 @else
-                    {{-- LOOP THROUGH CATEGORIES (Folders) --}}
                     @foreach($groupedFiles as $category => $files)
-
-                        {{-- Bulletproof Folder Name Logic --}}
                         @php
                             $folderName = $category;
                             if ($category === 'Others' && $files->isNotEmpty()) {
@@ -72,7 +68,6 @@
                                 <span class="text-[10px] bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">{{ count($files) }} item(s)</span>
                             </div>
 
-                            {{-- LOOP THROUGH FILES --}}
                             <ul class="divide-y divide-gray-100">
                                 @foreach($files as $file)
                                     @php
@@ -81,9 +76,11 @@
                                         $f_name = $isArr ? $file['name'] : $file->title;
                                         $f_path = $isArr ? $file['path'] : $file->file_path;
                                         $f_url = $isArr ? $file['url'] : route('file.view', $f_id);
+                                        $f_download_url = $isArr ? ($file['download_url'] ?? route('file.download', $f_id)) : route('file.download', $f_id);
                                         $f_size = $isArr ? $file['size'] : ($f_path ? 'File Attachment' : 'Text Content');
                                         $f_date = $isArr ? $file['date'] : $file->created_at->format('M d, Y');
                                         $f_uploader = $isArr ? $file['uploader'] : ($file->user->name ?? 'Unknown');
+                                        $f_link = $isArr ? ($file['link'] ?? null) : ($file->link ?? null);
                                     @endphp
 
                                     <li class="p-5 hover:bg-gray-50 transition flex items-center justify-between group">
@@ -109,24 +106,28 @@
                                         </div>
 
                                         <div class="flex items-center gap-2">
-                                            <a href="{{ $f_url }}" target="_blank" class="bg-gray-800 text-white px-3 py-1.5 rounded font-black text-[9px] hover:bg-black transition uppercase tracking-widest">
-                                                View
-                                            </a>
+                                            {{-- NEW: LINK BUTTON --}}
+                                            @if($f_link)
+                                                <a href="{{ $f_link }}" target="_blank" class="bg-blue-100 text-blue-800 px-3 py-1.5 rounded font-black text-[9px] hover:bg-blue-200 transition uppercase tracking-widest flex items-center gap-1">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg> 
+                                                    Link
+                                                </a>
+                                            @endif
+
+                                            <a href="{{ $f_url }}" target="_blank" class="bg-gray-800 text-white px-3 py-1.5 rounded font-black text-[9px] hover:bg-black transition uppercase tracking-widest">View</a>
+                                            
+                                            @if($f_path)
+                                            <a href="{{ $f_download_url }}" class="bg-blue-600 text-white px-3 py-1.5 rounded font-black text-[9px] hover:bg-blue-800 transition uppercase tracking-widest">Download</a>
+                                            @endif
 
                                             @auth
                                                 <form action="{{ route('files.destroy') }}" method="POST" onsubmit="return confirm('Remove this file? (Shared files/categories will be safely unlinked)')">
-                                                    @csrf
-                                                    @method('DELETE')
+                                                    @csrf @method('DELETE')
                                                     <input type="hidden" name="id" value="{{ $f_id }}">
                                                     <input type="hidden" name="file_path" value="{{ $f_path }}">
-                                                    
-                                                    {{-- TWO-TIER UNLINK LOGIC FIX --}}
                                                     <input type="hidden" name="office_context" value="{{ $office }}">
                                                     <input type="hidden" name="category_context" value="{{ $folderName }}">
-                                                    
-                                                    <button type="submit" class="bg-red-600 text-white px-3 py-1.5 rounded font-black text-[9px] hover:bg-red-800 transition uppercase tracking-widest">
-                                                        Delete
-                                                    </button>
+                                                    <button type="submit" class="bg-red-600 text-white px-3 py-1.5 rounded font-black text-[9px] hover:bg-red-800 transition uppercase tracking-widest">Delete</button>
                                                 </form>
                                             @endauth
                                         </div>
@@ -142,7 +143,7 @@
 
     <footer class="py-8 text-center border-t border-gray-200">
         <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-            &copy; {{ date('Y') }} Office of Student Affairs and Services
+            &copy; {{ date('Y') }} OVPSAS Portal. Polytechnic University of the Philippines.
         </p>
     </footer>
 </body>

@@ -10,20 +10,21 @@ class SearchController extends Controller
 {
     public function index(Request $request)
     {
-        $query = $request->input('search'); // 'search' matches the input name in your form
+        $query = $request->input('search');
 
-        // 1. Search Users (Name or Email)
-        $users = User::where('name', 'LIKE', "%{$query}%")
+        // 1. Search Users (Eager load 'office' for faster UI rendering)
+        $users = User::with('office')
+                     ->where('name', 'LIKE', "%{$query}%")
                      ->orWhere('email', 'LIKE', "%{$query}%")
                      ->get();
 
-        // 2. Search Announcements/Files (Title, Content, or Office)
+        // 2. Search Announcements/Files
         $announcements = Announcement::where('title', 'LIKE', "%{$query}%")
                                      ->orWhere('content', 'LIKE', "%{$query}%")
-                                     ->orWhere('office', 'LIKE', "%{$query}%") // Finds files from a specific office
+                                     ->orWhere('office', 'LIKE', "%{$query}%") 
+                                     ->orWhere('file_path', 'LIKE', "%{$query}%") // <-- NEW: Makes filenames searchable!
                                      ->get();
 
-        // Return the view with both sets of data
         return view('search.results', compact('users', 'announcements', 'query'));
     }
 }

@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Dashboard - OSAS')
+@section('title', 'Dashboard - OVPSAS Portal')
 
 @section('content')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -91,7 +91,7 @@
                         </div>
                         
                         <div class="p-5 relative">
-                            {{-- 2. ACTION BUTTONS LOCKDOWN (Only visible to the original poster) --}}
+                            {{-- ACTION BUTTONS --}}
                             @if(auth()->id() === $announcement->user_id)
                                 <div class="absolute top-5 right-5 flex gap-2">
                                     <button @click="openEdit = true" class="text-[9px] bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 font-black uppercase transition shadow-sm">
@@ -118,6 +118,16 @@
                             <h4 class="font-black text-sm text-[#800000] uppercase mb-2 w-5/6">{{ $announcement->title }}</h4>
                             <p class="text-xs text-gray-600 italic leading-relaxed whitespace-pre-line">{{ $announcement->content }}</p>
                             
+                            @if($announcement->link)
+                                <div class="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-between">
+                                    <div class="flex items-center gap-2 text-blue-800">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                                        <span class="text-[10px] font-bold uppercase tracking-widest">Collaboration Link Attached</span>
+                                    </div>
+                                    <a href="{{ $announcement->link }}" target="_blank" class="text-[9px] bg-blue-600 text-white px-3 py-1.5 rounded-full font-black uppercase shadow-sm hover:bg-blue-700 transition">Open Link</a>
+                                </div>
+                            @endif
+
                             @php 
                                 $files = [];
                                 if($announcement->file_path) {
@@ -134,7 +144,7 @@
                                         </div>
                                     @endforeach
                                 </div>
-                            @else
+                            @elseif(empty($files) && !$announcement->link)
                                 <div class="mt-4 p-3 bg-gray-100 rounded-lg flex items-center justify-between border-l-4 border-[#800000]">
                                     <span class="text-[10px] font-bold text-gray-400 italic">No attachment. Reading from post content...</span>
                                     <a href="{{ route('file.view', $announcement->id) }}" target="_blank" class="text-[9px] bg-gray-600 text-white px-3 py-1 rounded-full font-black uppercase shadow-sm hover:bg-gray-700 transition">View Post.txt</a>
@@ -204,9 +214,16 @@
 
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Scheduled Date (Optional)</label>
+                                            <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Scheduled Date</label>
                                             <input type="date" name="scheduled_date" value="{{ $announcement->scheduled_date ? \Carbon\Carbon::parse($announcement->scheduled_date)->format('Y-m-d') : '' }}" class="w-full p-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#800000]">
                                         </div>
+                                        <div>
+                                            <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Collaboration Link</label>
+                                            <input type="url" name="link" value="{{ $announcement->link }}" placeholder="https://..." class="w-full p-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#800000]">
+                                        </div>
+                                    </div>
+
+                                    <div>
                                         <div x-data="{ addFileNames: '' }">
                                             <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Add More Files</label>
                                             <label class="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 w-full p-1.5 rounded text-xs font-bold transition flex items-center justify-center gap-2">
@@ -273,9 +290,8 @@
                 @endforelse
             </div>
 
-            {{-- SIDEBAR AREA --}}
+            {{-- SIDEBAR AREA (Calendar & Repo) --}}
             <div class="lg:col-span-2 space-y-6">
-
                 {{-- CALENDAR --}}
                 <div class="bg-white shadow-xl rounded-xl overflow-hidden border border-gray-200 border-t-4 border-blue-600">
                     <div class="p-4 bg-gray-50 flex items-center justify-between border-b">
@@ -312,15 +328,25 @@
                     <div class="overflow-y-auto max-h-[300px]">
                         <table class="w-full text-left text-[11px]">
                             <tbody class="divide-y divide-gray-100">
-                                @forelse($repositoryFiles->take(15) as $file)
-                                    <tr class="hover:bg-red-50 group transition">
-                                        <td class="px-4 py-3 font-black text-gray-800 uppercase leading-tight">{{ $file->title }}</td>
-                                        <td class="px-4 py-3 text-right">
-                                            <a href="{{ route('file.view', $file->id) }}" target="_blank" class="text-[#800000] opacity-30 group-hover:opacity-100 transition inline-block">
-                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                                            </a>
-                                        </td>
-                                    </tr>
+                                {{-- NEW: Expands the JSON Array to show actual filenames in the sidebar! --}}
+                                @forelse($repositoryFiles->take(15) as $post)
+                                    @php
+                                        $files = json_decode($post->file_path, true);
+                                        $fileList = (is_array($files) && count($files) > 0) ? $files : [['original_name' => 'Text/Link Post']];
+                                    @endphp
+                                    @foreach($fileList as $file)
+                                        <tr class="hover:bg-red-50 group transition">
+                                            <td class="px-4 py-3 leading-tight">
+                                                <span class="font-black text-gray-800 uppercase block text-[10px] truncate max-w-[150px]">{{ $post->title }}</span>
+                                                <span class="text-gray-500 font-bold text-[9px] truncate max-w-[150px] block">📄 {{ $file['original_name'] }}</span>
+                                            </td>
+                                            <td class="px-4 py-3 text-right">
+                                                <a href="{{ route('file.view', ['announcement' => $post->id, 'path' => $file['path'] ?? null]) }}" target="_blank" class="text-[#800000] opacity-30 group-hover:opacity-100 transition inline-block">
+                                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
                                 @empty
                                     <tr><td colspan="2" class="px-4 py-10 text-center text-gray-400 italic uppercase">No files available.</td></tr>
                                 @endforelse
@@ -332,12 +358,10 @@
         </div>
     </div>
 
-    {{-- SCRIPTS (Wrapped in Admin check to avoid JS errors for Staff) --}}
     @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
     <script>
         const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
         
-        // Category Chart
         const catCtx = document.getElementById('categoryChart');
         if(catCtx) {
             new Chart(catCtx, {
@@ -350,7 +374,6 @@
             });
         }
 
-        // Office Chart
         const offCtx = document.getElementById('officeChart');
         if(offCtx) {
             new Chart(offCtx, {

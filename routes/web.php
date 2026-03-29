@@ -73,7 +73,9 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/announcements/{announcement}/comments', [CommentController::class, 'store'])->name('comments.store');
 
+    // File Management & Viewing
     Route::get('/file/view/{announcement}', [FileController::class, 'viewFile'])->name('file.view'); 
+    Route::get('/file/download/{announcement}', [FileController::class, 'downloadFile'])->name('file.download'); // <--- ADDED THIS LINE
     Route::delete('/files/delete', [FileController::class, 'destroyFile'])->name('files.destroy');
     Route::post('/files/store', [FileController::class, 'store'])->name('files.store');
     Route::post('/files/import', [FileController::class, 'import'])->name('files.import');

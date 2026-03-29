@@ -9,15 +9,16 @@ class Announcement extends Model
 {
     use HasFactory;
 
+    // ADDED 'link' to the array
     protected $fillable = [
         'user_id', 'title', 'content', 'office', 'category', 
-        'scheduled_date', 'file_path', 'custom_category'
+        'scheduled_date', 'file_path', 'custom_category', 'link'
     ];
 
     protected $casts = [
         'office' => 'array',
         'category' => 'array',
-        'scheduled_date' => 'date', // <--- CRITICAL: Treat as date object
+        'scheduled_date' => 'date', 
     ];
 
     public function user()
