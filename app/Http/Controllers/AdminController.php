@@ -15,7 +15,7 @@ class AdminController extends Controller
     public function index(Request $request)
     {
         // Start the query and load the office relationship to prevent N+1 database issues
-        // FIXED: Only load users whose status is 'active'
+        // Only load users whose status is 'active'
         $query = User::with('office')->where('status', 'active');
 
         // Apply Search Filter (by Name)
@@ -33,14 +33,12 @@ class AdminController extends Controller
             $query->where('role', $request->role);
         }
 
-        // Fetch users, sorting those requesting admin access to the very top, then alphabetically
-        $users = $query->orderByDesc('requesting_admin')
-                       ->orderBy('name')
-                       ->get();
+        // Fetch users, sorting alphabetically by name
+        $users = $query->orderBy('name')->get();
 
         $offices = Office::all();
 
-        // THE FIX: Added the "s" to users_management to match your file exactly!
+        // Return the view matching your filename
         return view('admin.users_management', compact('users', 'offices'));
     }
 
@@ -51,15 +49,6 @@ class AdminController extends Controller
     {
         $pendingUsers = User::with('office')->where('status', 'Pending')->get();
         return view('admin.approvals', compact('pendingUsers'));
-    }
-
-    /**
-     * ACTION: STAFF REQUESTS PROMOTION
-     */
-    public function requestPromotion()
-    {
-        auth()->user()->update(['requesting_admin' => true]);
-        return back()->with('success', 'Your request for Admin status has been submitted to the Super Admin.');
     }
 
     /**
@@ -79,10 +68,9 @@ class AdminController extends Controller
             return back()->with('error', 'You cannot demote yourself.');
         }
 
-        // Update the role. If promoted to Admin/Super Admin, clear the 'requesting_admin' flag automatically.
+        // Update the role
         $user->update([
             'role' => $request->role,
-            'requesting_admin' => ($request->role === 'Admin' || $request->role === 'Super Admin') ? false : $user->requesting_admin
         ]);
 
         return back()->with('success', "Role updated for {$user->name}.");
@@ -95,7 +83,7 @@ class AdminController extends Controller
     {
         $user = User::findOrFail($id);
         
-        // FIXED: Set status to 'active' so the login system lets them in
+        // Set status to 'active' so the login system lets them in
         $user->update(['status' => 'active']);
         
         return back()->with('success', "{$user->name} admitted to system.");

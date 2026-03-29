@@ -13,14 +13,18 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             
             // Core fields
-            $table->string('office'); 
-            $table->string('category');
+            $table->json('office'); 
+            $table->json('category');
             $table->string('title');
             
-            // The "Optional" fields - Ensure these are clean!
+            // The "Optional" fields 
             $table->text('content')->nullable(); 
-            $table->string('file_path')->nullable();
+            $table->text('file_path')->nullable(); // Handles JSON arrays of multiple files
             $table->string('custom_category')->nullable();
+            
+            // Added fields
+            $table->timestamp('scheduled_date')->nullable(); 
+            $table->text('link')->nullable(); // Handles long external/meeting URLs
             
             $table->timestamps();
         });

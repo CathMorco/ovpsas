@@ -40,7 +40,7 @@ class ReportController extends Controller
 
         // 3. Prepare the data array (MAKE SURE 'title' IS HERE)
         $data = [
-            'title' => 'OSAS System Utilization Report', // <--- This was missing!
+            'title' => 'OVPSAS Portal System Utilization Report', // <--- This was missing!
             'totalCount' => $totalCount,
             'activeUnits' => $activeUnits,
             'announcements' => $announcements,
@@ -50,6 +50,6 @@ class ReportController extends Controller
         // 4. Load the view and download
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.pdf', $data);
         
-        return $pdf->download('OSAS-Official-Report.pdf');
+        return $pdf->download('OVPSAS Portal-Official-Report.pdf');
     }
 }

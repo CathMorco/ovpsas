@@ -69,6 +69,12 @@ class DashboardController extends Controller
         $officeData = $expandedOffices->filter()->groupBy(fn($off) => $off)->map(fn($group, $key) => (object) ['office' => $key, 'total' => $group->count()])->values();
         $filteredOfficeData = $officeData->reject(fn($o) => in_array(strtolower($o->office), ['general', 'all offices']))->sortBy('office')->values();
 
+        // NEW: Calculate Memorandums Uploaded
+        $memorandumsCount = $rawAnnouncements->filter(function($item) {
+            $cats = is_array($item->category) ? $item->category : [$item->category];
+            return in_array('Memorandums', $cats);
+        })->count();
+
         return view('dashboard', [
             'upcomingEvents' => $groupedAnnouncements->filter(fn($item) => !empty($item->scheduled_date) && Carbon::parse($item->scheduled_date)->isAfter(now()->startOfDay()))->sortBy('scheduled_date'),
             'feedItems' => $groupedAnnouncements,
@@ -76,7 +82,7 @@ class DashboardController extends Controller
             'recentActivities' => $recentActivities,
             'totalActualFiles' => $rawAnnouncements->count(),
             'monitoredOfficesCount' => $filteredOfficeData->count(),
-            'filesThisMonthCount' => $rawAnnouncements->filter(fn($item) => $item->created_at && $item->created_at->isCurrentMonth())->count(),
+            'memorandumsCount' => $memorandumsCount, // Passed to View
             'mostActiveOffice' => $filteredOfficeData->sortByDesc('total')->first()->office ?? 'N/A',
             'categoryData' => $categoryData, 
             'filteredOfficeData' => $filteredOfficeData, 

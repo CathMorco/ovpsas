@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Account Settings - OSAS')
+@section('title', 'Account Settings - OVPSAS Portal')
 
 @section('content')
 <div class="pt-2 pb-12 bg-[#F3F4F6] min-h-screen">

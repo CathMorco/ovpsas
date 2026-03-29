@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Forgot Password - OSAS</title>
+    <title>Forgot Password - OVPSAS Portal</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -15,7 +15,7 @@
             <a href="{{ url('/') }}" class="flex items-center gap-4 group">
                 <img src="/images/PUPLogo.png" alt="PUP Logo" class="h-14 w-14 rounded-full bg-white p-0.5 border-2 border-white group-hover:scale-105 transition-transform">
                 <div class="flex flex-col text-white leading-tight">
-                    <span class="font-black text-2xl tracking-tight">OSAS</span>
+                    <span class="font-black text-2xl tracking-tight">OVPSAS Portal</span>
                     <span class="font-light text-xs opacity-90 tracking-widest uppercase">Office of Student Affairs and Services</span>
                 </div>
             </a>
@@ -73,7 +73,7 @@
     </main>
 
     <footer class="bg-gray-800 text-white py-4 text-center text-xs">
-        &copy; {{ date('Y') }} OSAS. Polytechnic University of the Philippines.
+        &copy; {{ date('Y') }} OVPSAS Portal. Polytechnic University of the Philippines.
     </footer>
 </body>
 </html>

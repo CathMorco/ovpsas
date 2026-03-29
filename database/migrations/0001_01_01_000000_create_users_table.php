@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('suffix')->nullable(); // Added
+            $table->string('suffix')->nullable();
             $table->string('email')->unique();
-            $table->string('phone')->nullable();  // Added
+            $table->string('phone')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             
@@ -24,8 +24,12 @@ return new class extends Migration
             $table->integer('office_id')->nullable();  
             $table->string('designation')->nullable(); 
             
-            $table->string('avatar')->nullable(); // Added
-            $table->string('status')->default('Pending'); // Added (Crucial for Approvals)
+            $table->string('avatar')->nullable(); 
+            $table->string('status')->default('Pending'); 
+
+            // Added fields from later migrations
+            $table->timestamp('last_seen_at')->nullable(); // From 03_26 migration
+            $table->string('promotion_request')->nullable(); // From 03_26 migration
 
             $table->rememberToken();
             $table->timestamps();

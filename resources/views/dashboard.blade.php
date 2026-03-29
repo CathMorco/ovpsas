@@ -11,7 +11,6 @@
         {{-- 1. ADMIN-ONLY ANALYTICS BLOCK --}}
         @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
             
-            {{-- TOP STAT CARDS --}}
             <div class="bg-white p-8 rounded-xl shadow-md border-t-4 border-[#800000]">
                 <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
                     <div>
@@ -33,8 +32,8 @@
                         <h3 class="text-3xl font-black text-gray-800">{{ $monitoredOfficesCount }}</h3>
                     </div>
                     <div class="bg-green-50 p-6 rounded-xl border border-green-100 text-center">
-                        <p class="text-[10px] font-bold text-green-700 uppercase mb-1">Uploaded This Month</p>
-                        <h3 class="text-3xl font-black text-green-600">{{ $filesThisMonthCount }}</h3>
+                        <p class="text-[10px] font-bold text-green-700 uppercase mb-1">Memorandums Uploaded</p>
+                        <h3 class="text-3xl font-black text-green-600">{{ $memorandumsCount }}</h3>
                     </div>
                     <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 text-center">
                         <p class="text-[10px] font-bold text-blue-700 uppercase mb-1">Most Active Office</p>
@@ -43,7 +42,6 @@
                 </div>
             </div>
 
-            {{-- CHARTS --}}
             <div class="grid md:grid-cols-2 gap-6">
                 <div class="bg-white p-5 shadow-md rounded-2xl border-t-4 border-yellow-400 h-[300px]">
                     <h3 class="font-black text-gray-700 mb-4 text-[10px] uppercase tracking-widest text-center">Category Distribution</h3>
@@ -69,13 +67,14 @@
                                 <div class="w-10 h-10 rounded-full bg-[#800000] flex items-center justify-center text-white font-bold text-xs uppercase">{{ substr($announcement->user->name ?? '?', 0, 1) }}</div>
                                 <div>
                                     <p class="text-xs font-black text-gray-900 uppercase">{{ $announcement->user->name ?? 'Admin' }}</p>
-                                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">
-                                        {{ is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office }} • 
-                                        {{ $announcement->created_at->diffForHumans() }}
+                                    
+                                    {{-- CREATED & EDITED TIMESTAMPS --}}
+                                    <div class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter mt-0.5">
+                                        <span class="text-gray-600">Created on: {{ $announcement->created_at->format('M d, Y h:i A') }}</span>
                                         @if($announcement->updated_at->diffInSeconds($announcement->created_at) > 60)
-                                            <span class="text-gray-400 italic"> (Edited {{ $announcement->updated_at->diffForHumans() }})</span>
+                                            <span class="text-[#800000] ml-2"> • Edited on: {{ $announcement->updated_at->format('M d, Y h:i A') }}</span>
                                         @endif
-                                    </p>
+                                    </div>
                                 </div>
                             </div>
 
@@ -91,6 +90,11 @@
                         </div>
                         
                         <div class="p-5 relative">
+                            {{-- TARGET OFFICES BADGE --}}
+                            <p class="text-[10px] font-bold text-[#800000] uppercase mb-3 bg-red-50 inline-block px-2 py-1 rounded border border-red-100">
+                                Target Offices: {{ is_array($announcement->office) ? implode(', ', $announcement->office) : $announcement->office }}
+                            </p>
+
                             {{-- ACTION BUTTONS --}}
                             @if(auth()->id() === $announcement->user_id)
                                 <div class="absolute top-5 right-5 flex gap-2">
@@ -108,26 +112,27 @@
                                 </div>
                             @endif
 
-                            @if($announcement->scheduled_date)
-                                <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-md text-[9px] font-black uppercase mb-3 border border-blue-100">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                    <span>Event Date: {{ \Carbon\Carbon::parse($announcement->scheduled_date)->format('M d, Y') }}</span>
-                                </div>
-                            @endif
+                            {{-- BADGES: Date & Access Link --}}
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                @if($announcement->scheduled_date)
+                                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-md text-[9px] font-black uppercase border border-blue-100">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                        <span>Event Date: {{ \Carbon\Carbon::parse($announcement->scheduled_date)->format('M d, Y') }}</span>
+                                    </div>
+                                @endif
+                                
+                                @if($announcement->link)
+                                    <a href="{{ $announcement->link }}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-md text-[9px] font-black uppercase border border-blue-700 hover:bg-blue-700 shadow-sm transition">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                                        <span>Access Link</span>
+                                    </a>
+                                @endif
+                            </div>
 
                             <h4 class="font-black text-sm text-[#800000] uppercase mb-2 w-5/6">{{ $announcement->title }}</h4>
                             <p class="text-xs text-gray-600 italic leading-relaxed whitespace-pre-line">{{ $announcement->content }}</p>
                             
-                            @if($announcement->link)
-                                <div class="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-between">
-                                    <div class="flex items-center gap-2 text-blue-800">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-                                        <span class="text-[10px] font-bold uppercase tracking-widest">Collaboration Link Attached</span>
-                                    </div>
-                                    <a href="{{ $announcement->link }}" target="_blank" class="text-[9px] bg-blue-600 text-white px-3 py-1.5 rounded-full font-black uppercase shadow-sm hover:bg-blue-700 transition">Open Link</a>
-                                </div>
-                            @endif
-
+                            {{-- PROPER FILE EXTRACTION FIX --}}
                             @php 
                                 $files = [];
                                 if($announcement->file_path) {
@@ -135,12 +140,15 @@
                                     $files = is_array($decoded) ? $decoded : [['path' => $announcement->file_path, 'original_name' => basename($announcement->file_path)]];
                                 }
                             @endphp
+                            
                             @if(!empty($files))
                                 <div class="mt-4 space-y-2">
                                     @foreach($files as $file)
                                         <div class="p-3 bg-gray-100 rounded-lg flex items-center justify-between border-l-4 border-[#800000]">
-                                            <span class="text-[10px] font-bold text-gray-500 truncate max-w-[200px]">{{ $file['original_name'] }}</span>
-                                            <a href="{{ route('file.view', ['announcement' => $announcement->id, 'path' => $file['path']]) }}" target="_blank" class="text-[9px] bg-[#800000] text-white px-3 py-1 rounded-full font-black uppercase shadow-sm hover:bg-red-800 transition">View File</a>
+                                            <span class="text-[10px] font-bold text-gray-500 truncate max-w-[200px]">{{ $file['original_name'] ?? basename($file['path']) }}</span>
+                                            <div class="flex gap-2">
+                                                <a href="{{ route('file.view', ['announcement' => $announcement->id, 'path' => $file['path']]) }}" target="_blank" class="text-[9px] bg-[#800000] text-white px-3 py-1 rounded-full font-black uppercase shadow-sm hover:bg-red-800 transition">View File</a>
+                                            </div>
                                         </div>
                                     @endforeach
                                 </div>
@@ -162,31 +170,38 @@
                                 </div>
 
                                 <form action="{{ route('announcements.update', $announcement->id) }}" method="POST" enctype="multipart/form-data" class="space-y-5">
-                                    @csrf
-                                    @method('PUT')
-                                    
+                                    @csrf @method('PUT')
                                     <div>
                                         <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Title</label>
                                         <input type="text" name="title" value="{{ $announcement->title }}" class="w-full p-3 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#800000]" required>
                                     </div>
-
                                     <div>
                                         <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Content</label>
                                         <textarea name="content" rows="4" class="w-full p-3 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#800000]">{{ $announcement->content }}</textarea>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-black text-blue-700 uppercase tracking-widest mb-1">Access Link (Optional)</label>
+                                        <input type="url" name="link" value="{{ $announcement->link }}" placeholder="https://docs.google.com/..." class="w-full p-2 border border-blue-200 bg-blue-50 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 text-blue-800">
                                     </div>
 
                                     <div class="grid grid-cols-2 gap-4">
                                         <div class="bg-gray-50 p-3 rounded-lg border">
                                             <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-2 border-b pb-1">Target Offices</label>
-                                            <div class="space-y-1">
-                                                @php $offices = ['All Offices', 'ARCDO', 'OCPS', 'OSFA', 'OSS', 'OUR', 'SDPO', 'UCCA']; @endphp
+                                            
+                                            <div class="space-y-1" x-data="{ selectedOffices: {{ json_encode(is_array($announcement->office) ? $announcement->office : [$announcement->office]) }} }">
+                                                @php $offices = ['All Offices', 'OVPSAS', 'ARCDO', 'OCPS', 'OSFA', 'OSS', 'OUR', 'SDPO', 'UCCA']; @endphp
                                                 @foreach($offices as $office)
-                                                    <label class="flex items-center gap-2 text-xs text-gray-600">
-                                                        <input type="checkbox" name="office[]" value="{{ $office }}" 
-                                                        {{ in_array($office, is_array($announcement->office) ? $announcement->office : [$announcement->office]) ? 'checked' : '' }}
-                                                        class="rounded text-[#800000] focus:ring-[#800000]">
-                                                        {{ $office }}
-                                                    </label>
+                                                    @if($office === 'All Offices')
+                                                        <label class="flex items-center gap-2 text-xs text-gray-600">
+                                                            <input type="checkbox" name="office[]" value="{{ $office }}" x-model="selectedOffices" @change="if($el.checked) selectedOffices = ['All Offices']" class="rounded text-[#800000] focus:ring-[#800000]">
+                                                            {{ $office }}
+                                                        </label>
+                                                    @else
+                                                        <label class="flex items-center gap-2 text-xs text-gray-600" :class="selectedOffices.includes('All Offices') ? 'opacity-40 cursor-not-allowed' : ''">
+                                                            <input type="checkbox" name="office[]" value="{{ $office }}" x-model="selectedOffices" :disabled="selectedOffices.includes('All Offices')" class="rounded text-[#800000] focus:ring-[#800000] disabled:bg-gray-300 disabled:border-gray-300">
+                                                            {{ $office }}
+                                                        </label>
+                                                    @endif
                                                 @endforeach
                                             </div>
                                         </div>
@@ -200,8 +215,7 @@
                                                             <input type="checkbox" name="category[]" value="{{ $cat }}" 
                                                             {{ in_array($cat, is_array($announcement->category) ? $announcement->category : [$announcement->category]) ? 'checked' : '' }}
                                                             @if($cat === 'Others') x-model="showCustom" @endif
-                                                            class="rounded text-[#800000] focus:ring-[#800000]">
-                                                            {{ $cat }}
+                                                            class="rounded text-[#800000] focus:ring-[#800000]"> {{ $cat }}
                                                         </label>
                                                     @endforeach
                                                 </div>
@@ -214,21 +228,14 @@
 
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Scheduled Date</label>
+                                            <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Scheduled Date (Optional)</label>
                                             <input type="date" name="scheduled_date" value="{{ $announcement->scheduled_date ? \Carbon\Carbon::parse($announcement->scheduled_date)->format('Y-m-d') : '' }}" class="w-full p-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#800000]">
                                         </div>
-                                        <div>
-                                            <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Collaboration Link</label>
-                                            <input type="url" name="link" value="{{ $announcement->link }}" placeholder="https://..." class="w-full p-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#800000]">
-                                        </div>
-                                    </div>
-
-                                    <div>
                                         <div x-data="{ addFileNames: '' }">
                                             <label class="block text-[10px] font-black text-gray-700 uppercase tracking-widest mb-1">Add More Files</label>
                                             <label class="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 w-full p-1.5 rounded text-xs font-bold transition flex items-center justify-center gap-2">
-                                                <span>Choose Files</span>
-                                                <input type="file" name="attachments[]" multiple class="hidden" @change="addFileNames = Array.from($event.target.files).map(f => f.name).join(', ');">
+                                                <span x-text="addFileNames ? 'Files Selected' : 'Choose Files to Add'">Choose Files to Add</span>
+                                                <input type="file" name="attachment[]" multiple class="hidden" @change="addFileNames = Array.from($event.target.files).map(f => f.name).join(', ');">
                                             </label>
                                             <template x-if="addFileNames"><p class="text-[9px] text-green-600 mt-1 italic truncate" x-text="addFileNames"></p></template>
                                         </div>
@@ -240,8 +247,8 @@
                                             <div class="space-y-2">
                                                 @foreach($files as $file)
                                                     <label class="flex items-center gap-2 text-xs text-gray-700 bg-white p-2 rounded shadow-sm cursor-pointer border border-red-50 hover:bg-red-100 transition">
-                                                        <input type="checkbox" name="remove_files[]" value="{{ $file['path'] }}" class="text-red-600 rounded">
-                                                        <span class="truncate">🗑️ Delete: {{ $file['original_name'] }}</span>
+                                                        <input type="checkbox" name="remove_files[]" value="{{ $file['path'] }}" class="text-red-600 focus:ring-red-500 rounded">
+                                                        <span class="truncate">🗑️ Delete: {{ $file['original_name'] ?? basename($file['path']) }}</span>
                                                     </label>
                                                 @endforeach
                                             </div>
@@ -305,13 +312,18 @@
                                     <span class="text-[9px] font-black text-blue-600 uppercase">{{ \Carbon\Carbon::parse($event->scheduled_date)->format('M') }}</span>
                                     <span class="text-lg font-black text-gray-800 leading-none">{{ \Carbon\Carbon::parse($event->scheduled_date)->format('d') }}</span>
                                 </div>
-                                <div class="min-w-0">
+                                <div class="min-w-0 flex-1">
                                     <p class="text-[10px] font-black text-gray-800 uppercase truncate" title="{{ $event->title }}">{{ $event->title }}</p>
                                     @php $days = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($event->scheduled_date), false); @endphp
-                                    <p class="text-[8px] font-medium text-gray-500 mt-1">
-                                        @if($days == 0) <span class="text-red-600 font-black animate-pulse">HAPPENING TODAY</span> 
-                                        @else In {{ $days }} {{ Str::plural('day', $days) }} @endif
-                                    </p>
+                                    <div class="flex items-center justify-between mt-1">
+                                        <p class="text-[8px] font-medium text-gray-500">
+                                            @if($days == 0) <span class="text-red-600 font-black animate-pulse">HAPPENING TODAY</span> 
+                                            @else In {{ $days }} {{ Str::plural('day', $days) }} @endif
+                                        </p>
+                                        @if($event->link)
+                                            <a href="{{ $event->link }}" target="_blank" class="bg-blue-600 text-white text-[8px] font-black px-2 py-0.5 rounded shadow-sm hover:bg-blue-700 uppercase tracking-tighter transition">Access</a>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         @empty
@@ -328,7 +340,6 @@
                     <div class="overflow-y-auto max-h-[300px]">
                         <table class="w-full text-left text-[11px]">
                             <tbody class="divide-y divide-gray-100">
-                                {{-- NEW: Expands the JSON Array to show actual filenames in the sidebar! --}}
                                 @forelse($repositoryFiles->take(15) as $post)
                                     @php
                                         $files = json_decode($post->file_path, true);
@@ -361,7 +372,6 @@
     @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
     <script>
         const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
-        
         const catCtx = document.getElementById('categoryChart');
         if(catCtx) {
             new Chart(catCtx, {
@@ -373,7 +383,6 @@
                 options: { ...opts, cutout: '75%' }
             });
         }
-
         const offCtx = document.getElementById('officeChart');
         if(offCtx) {
             new Chart(offCtx, {
@@ -387,10 +396,5 @@
         }
     </script>
     @endif
-
-    <style>
-        [x-cloak] { display: none !important; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    </style>
+    <style> [x-cloak] { display: none !important; } ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; } </style>
 @endsection

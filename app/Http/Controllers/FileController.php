@@ -41,7 +41,6 @@ class FileController extends Controller
                     $displayCollection->push([
                         'id' => $post->id, 
                         'category' => $cat, 
-                        // NEW: Showcases both Title and Filename
                         'name' => $post->title . '  —  📄 ' . $originalName,
                         'path' => $file['path'], 
                         'url' => route('file.view', ['announcement' => $post->id, 'path' => $file['path']]),
@@ -56,7 +55,7 @@ class FileController extends Controller
                 $displayCollection->push([
                     'id' => $post->id, 
                     'category' => $cat, 
-                    'name' => $post->title . " — 📝 (Post Content).txt",
+                    'name' => $post->title . " — 📝 (Post Content)",
                     'path' => null, 
                     'url' => route('file.view', $post->id),
                     'download_url' => route('file.download', $post->id),
@@ -106,7 +105,7 @@ class FileController extends Controller
             $userOfficeCode = $user->office ? $user->office->code : null;
             foreach ($offices as $targetOffice) {
                 if ($targetOffice !== $userOfficeCode) {
-                    return back()->with('error', 'Security Alert: You can only post files to your assigned office (' . $userOfficeCode . ').');
+                    return back()->with('error', 'Security Alert: You can only post files to your assigned office.');
                 }
             }
         }
@@ -160,9 +159,10 @@ class FileController extends Controller
             }
         }
 
+        // PERFECT SIBLING DELETION (Wide 60s window catches everything to guarantee no duplicates)
         $originalCreatedAt = Carbon::parse($announcement->getOriginal('created_at'));
         $siblings = Announcement::where('user_id', $user->id)->where('title', $announcement->getOriginal('title'))
-            ->whereBetween('created_at', [$originalCreatedAt->copy()->subSeconds(5), $originalCreatedAt->copy()->addSeconds(5)])->get();
+            ->whereBetween('created_at', [$originalCreatedAt->copy()->subSeconds(60), $originalCreatedAt->copy()->addSeconds(60)])->get();
 
         $existingFiles = [];
         if ($announcement->file_path) {
@@ -192,23 +192,26 @@ class FileController extends Controller
         foreach ($offices as $o) { foreach ($categories as $c) { $combinations[] = ['o' => $o, 'c' => $c]; } }
 
         $first = array_shift($combinations);
+        
+        // 1. Update the root post to keep comments alive
         $announcement->update([
             'title' => $request->title, 'content' => $request->content, 
             'office' => [$first['o']], 'category' => [$first['c']], 
             'file_path' => $encodedPaths, 'scheduled_date' => $request->scheduled_date,
-            'link' => $request->link,
-            'updated_at' => now()
+            'link' => $request->link, 'updated_at' => now()
         ]);
 
-        Announcement::where('user_id', $user->id)->where('id', '!=', $announcement->id)->whereIn('id', $siblings->pluck('id'))->delete();
+        // 2. Eradicate all outdated ghost copies to prevent duplicates
+        $siblingIdsToDelete = $siblings->pluck('id')->reject(fn($id) => $id == $announcement->id);
+        Announcement::whereIn('id', $siblingIdsToDelete)->delete();
 
+        // 3. Create fresh copies
         foreach ($combinations as $combo) {
             Announcement::create([
                 'user_id' => $user->id, 'title' => $request->title, 'content' => $request->content, 
                 'office' => [$combo['o']], 'category' => [$combo['c']], 'file_path' => $encodedPaths, 
                 'scheduled_date' => $request->scheduled_date, 'created_at' => $announcement->getOriginal('created_at'),
-                'link' => $request->link,
-                'updated_at' => now()
+                'link' => $request->link, 'updated_at' => now()
             ]);
         }
 
@@ -237,7 +240,7 @@ class FileController extends Controller
             $txtContent = "TITLE: " . $announcement->title . "\r\nDATE: " . $announcement->created_at->format('F d, Y') . "\r\nOFFICES: " . $officeNames . "\r\n----------------\r\n\r\n" . $announcement->content;
             
             if ($announcement->link) {
-                $txtContent .= "\r\n\r\nCOLLABORATION LINK: " . $announcement->link;
+                $txtContent .= "\r\n\r\nACCESS LINK: " . $announcement->link;
             }
 
             $this->logActivity($announcement, $fileName, $officeNames, $isDownload ? 'Downloaded' : 'Opened');
@@ -276,7 +279,7 @@ class FileController extends Controller
 
         $originalCreatedAt = Carbon::parse($announcement->getOriginal('created_at'));
         $siblings = Announcement::where('user_id', $user->id)->where('title', $announcement->getOriginal('title'))
-            ->whereBetween('created_at', [$originalCreatedAt->copy()->subSeconds(5), $originalCreatedAt->copy()->addSeconds(5)])->get();
+            ->whereBetween('created_at', [$originalCreatedAt->copy()->subSeconds(60), $originalCreatedAt->copy()->addSeconds(60)])->get();
 
         if ($announcement->file_path) {
             $files = json_decode($announcement->file_path, true);
@@ -294,22 +297,39 @@ class FileController extends Controller
     public function destroyFile(Request $request)
     {
         $id = $request->input('id');
+        $pathToRemove = $request->input('file_path');
         $announcement = Announcement::findOrFail($id);
         
-        if ($announcement->file_path) {
+        // TRUE ISOLATED FILE DELETION (Safely extracts arrays to prevent accidental multi-deletes)
+        if ($pathToRemove && $announcement->file_path) {
             $files = json_decode($announcement->file_path, true);
-            $pathsToDelete = is_array($files) ? $files : [['path' => $announcement->file_path]];
+            if (is_array($files)) {
+                $remainingFiles = array_filter($files, fn($f) => ($f['path'] ?? null) !== $pathToRemove);
+                
+                $sharedCount = Announcement::where('file_path', 'LIKE', '%' . $pathToRemove . '%')->where('id', '!=', $id)->count();
+                if ($sharedCount === 0 && Storage::disk('public')->exists($pathToRemove)) {
+                    Storage::disk('public')->delete($pathToRemove);
+                }
 
-            foreach ($pathsToDelete as $file) {
-                $sharedCount = Announcement::where('file_path', 'LIKE', '%' . $file['path'] . '%')->where('id', '!=', $id)->count();
-                if ($sharedCount === 0 && Storage::disk('public')->exists($file['path'])) {
-                    Storage::disk('public')->delete($file['path']);
+                if (count($remainingFiles) > 0) {
+                    $announcement->update(['file_path' => json_encode(array_values($remainingFiles))]);
+                    RecentActivity::create(['user_id' => Auth::id(), 'file_name' => basename($pathToRemove), 'office_name' => 'Folder', 'action' => 'Deleted File']);
+                    return back()->with('success', 'File removed safely.');
+                } else {
+                    if (empty($announcement->content) && empty($announcement->link)) {
+                        $announcement->delete();
+                    } else {
+                        $announcement->update(['file_path' => null]);
+                    }
+                    RecentActivity::create(['user_id' => Auth::id(), 'file_name' => basename($pathToRemove), 'office_name' => 'Folder', 'action' => 'Deleted File']);
+                    return back()->with('success', 'File removed successfully.');
                 }
             }
         }
         
-        RecentActivity::create(['user_id' => Auth::id(), 'file_name' => $announcement->title, 'office_name' => 'Folder', 'action' => 'Deleted File']);
+        // Fallback for full item deletion
+        RecentActivity::create(['user_id' => Auth::id(), 'file_name' => $announcement->title, 'office_name' => 'Folder', 'action' => 'Deleted Item']);
         $announcement->delete();
-        return back()->with('success', 'File removed successfully.');
+        return back()->with('success', 'Item removed successfully.');
     }
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Reset Password - OSAS</title>
+    <title>Reset Password - OVPSAS Portal</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-100 font-sans antialiased flex flex-col min-h-screen">
@@ -36,7 +36,7 @@
     </main>
 
     <footer class="bg-gray-800 text-white py-4 text-center text-xs">
-        &copy; {{ date('Y') }} OSAS. Polytechnic University of the Philippines.
+        &copy; {{ date('Y') }} OVPSAS Portal. Polytechnic University of the Philippines.
     </footer>
 </body>
 </html>
